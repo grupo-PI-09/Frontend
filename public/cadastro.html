@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RR Maxx | Cadastro</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <main class="page-shell">
+        <button class="back-button" type="button" aria-label="Voltar" data-target="./index.html">
+            <span></span>
+        </button>
+
+        <section class="auth-wrapper">
+            <header class="brand-block">
+                <img class="brand-logo" src="./assets/Logo.png" alt="Logo RR Maxx">
+            </header>
+
+            <article class="auth-card">
+                <section class="panel is-active">
+                    <h1>Cadastro</h1>
+                    <form id="register-form" novalidate>
+                        <label for="register-name">Nome:</label>
+                        <input id="register-name" name="name" type="text" required>
+
+                        <label for="register-email">E-mail:</label>
+                        <input id="register-email" name="email" type="email" required>
+
+                        <label for="register-password">Senha:</label>
+                        <input id="register-password" name="password" type="password" required>
+
+                        <button class="primary-button" type="submit">Cadastrar</button>
+                    </form>
+                    <p class="helper-link">
+                        Ja possui conta?
+                        <a href="./index.html">Entrar</a>
+                    </p>
+                </section>
+
+                <p class="feedback" id="feedback" aria-live="polite"></p>
+            </article>
+        </section>
+    </main>
+
+    <script src="./server.js"></script>
+</body>
+</html>
