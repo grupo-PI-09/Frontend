@@ -8,5 +8,49 @@
 </head>
 <body>
     <side-bar></side-bar>
+    <div class="container">
+        <h1>Gerenciamento de Clientes e Veículos</h1>
+        
+        <div class="header-actions">
+            <div class="search-box">
+                <input type="text" id="inputSearch" placeholder="Pesquisar cliente por nome" onkeyup="filterTable()">
+            </div>
+            <button class="btn-new-client" onclick="window.location.href='cadastro.html'">
+                + Novo Cadastro
+            </button>
+        </div>
+
+        <table class="client-table" id="tableClients">
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>E-mail</th>
+                    <th>Telefone</th>
+                    <th>Veículo - (Modelo/Placa)</th>
+                    <th></th> 
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Ricardo Souza</td>
+                    <td>ricardo@email.com</td>
+                    <td>(11) 98888-7777</td>
+                    <td>Toyota Corolla (ABC-1234)</td>
+                    <td>
+                        <button class="btn-detalhes">Ver mais</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Ana Beatriz</td>
+                    <td>ana.b@email.com</td>
+                    <td>(11) 97777-6666</td>
+                    <td>Honda Civic (XYZ-9876)</td>
+                    <td>
+                        <button class="btn-detalhes">Ver mais</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </body>
 </html>
