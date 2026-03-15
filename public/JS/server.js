@@ -1,129 +1,188 @@
-const formularioLogin = document.getElementById("login-form");
-const formularioCadastro = document.getElementById("register-form");
+const loginForm = document.getElementById("login-form");
+const registerForm = document.getElementById("register-form");
 const feedback = document.getElementById("feedback");
-const botaoVoltar = document.querySelector(".back-button");
+const backButton = document.querySelector(".back-button");
 
-function buscarUsuarios() {
-  return fetch("../users.json").then((response) => response.json()).then((dados) => {
-    return dados.users || dados;
-  });
+const API_USERS_URL = "http://localhost:8080/users";
+const STORAGE_KEY = "RR_MAXX_USERS";
+
+function setFeedback(message, type) {
+    if (!feedback) {
+        return;
+    }
+
+    feedback.textContent = message;
+    feedback.className = "feedback";
+
+    if (type) {
+        feedback.classList.add(type);
+    }
 }
 
-function cadastrarUsuario() {
-  const usuario = {
-    id: Date.now(),
-    name: document.getElementById("register-name").value,
-    email: document.getElementById("register-email").value,
-    password: document.getElementById("register-password").value,
-  };
+function normalizeUser(user) {
+    return {
+        id: user.id ?? Date.now(),
+        name: String(user.name || "").trim(),
+        email: String(user.email || "").trim().toLowerCase(),
+        password: String(user.password || ""),
+    };
+}
 
-  if (!usuario.name || !usuario.email || !usuario.password) {
-    feedback.textContent = "Preencha todos os campos do cadastro.";
-    feedback.className = "feedback error";
-    return;
-  }
+function readUsersFromStorage() {
+    const raw = localStorage.getItem(STORAGE_KEY);
 
-  buscarUsuarios()
-    .then((usuarios) => {
-      const usuarioExiste = usuarios.find(
-        (item) => item.email === usuario.email
-      );
+    if (!raw) {
+        return [];
+    }
 
-      if (usuarioExiste) {
-        throw new Error("Ja existe uma conta com este e-mail.");
-      }
+    try {
+        const users = JSON.parse(raw);
+        return Array.isArray(users) ? users.map(normalizeUser) : [];
+    } catch (error) {
+        console.error("Erro ao ler usuarios salvos localmente:", error);
+        return [];
+    }
+}
 
-      return fetch("/users", {
+function writeUsersToStorage(users) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+}
+
+async function fetchUsersFromApi() {
+    const response = await fetch(API_USERS_URL);
+
+    if (!response.ok) {
+        throw new Error("Nao foi possivel carregar os usuarios.");
+    }
+
+    const users = await response.json();
+    return Array.isArray(users) ? users.map(normalizeUser) : [];
+}
+
+async function createUserInApi(user) {
+    const response = await fetch(API_USERS_URL, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+            "Content-Type": "application/json",
         },
-        body: JSON.stringify(usuario),
-      });
-    })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Erro ao cadastrar usuario.");
-      }
-
-      return response.json();
-    })
-    .then(() => {
-      feedback.textContent = "Cadastro realizado com sucesso.";
-      feedback.className = "feedback success";
-      formularioCadastro.reset();
-    })
-    .catch((erro) => {
-      console.error("Erro ao cadastrar usuario:", erro);
-      feedback.textContent = erro.message || "Erro ao cadastrar usuario.";
-      feedback.className = "feedback error";
+        body: JSON.stringify(user),
     });
+
+    if (!response.ok) {
+        throw new Error("Nao foi possivel cadastrar o usuario.");
+    }
+
+    return normalizeUser(await response.json());
 }
 
-function logarUsuario() {
-  const usuario = {
-    email: document.getElementById("login-email").value,
-    password: document.getElementById("login-password").value,
-  };
+async function getUsers() {
+    try {
+        const users = await fetchUsersFromApi();
+        writeUsersToStorage(users);
+        return users;
+    } catch (error) {
+        console.warn("API indisponivel. Usando armazenamento local.", error);
+        return readUsersFromStorage();
+    }
+}
 
-  if (!usuario.email || !usuario.password) {
-    feedback.textContent = "Informe e-mail e senha para entrar.";
-    feedback.className = "feedback error";
-    return;
-  }
+async function registerUser(payload) {
+    const user = normalizeUser(payload);
+    const users = await getUsers();
+    const userExists = users.some((item) => item.email === user.email);
 
-  buscarUsuarios()
-    .then((usuarios) => {
-      const usuarioEncontrado = usuarios.find(
+    if (userExists) {
+        throw new Error("Ja existe uma conta com este e-mail.");
+    }
+
+    try {
+        const createdUser = await createUserInApi(user);
+        writeUsersToStorage([...users, createdUser]);
+        return createdUser;
+    } catch (error) {
+        const updatedUsers = [...users, user];
+        writeUsersToStorage(updatedUsers);
+        return user;
+    }
+}
+
+async function loginUser(payload) {
+    const credentials = normalizeUser(payload);
+    const users = await getUsers();
+    const user = users.find(
         (item) =>
-          item.email === usuario.email && item.password === usuario.password
-      );
+            item.email === credentials.email &&
+            item.password === credentials.password
+    );
 
-      if (!usuarioEncontrado) {
+    if (!user) {
         throw new Error("E-mail ou senha incorretos.");
-      }
+    }
 
-      feedback.textContent =
-        "Login realizado com sucesso. Bem-vindo, " +
-        usuarioEncontrado.name +
-        ".";
-      feedback.className = "feedback success";
-      formularioLogin.reset();
-      sessionStorage.setItem("NOME_USUARIO", usuarioEncontrado.name);
-      setTimeout(() => { window.location.href = "dashboard.html"; }, 1500);
-    })
-    .catch((erro) => {
-      console.error("Erro ao fazer login:", erro);
-      feedback.textContent = erro.message || "Erro ao fazer login.";
-      feedback.className = "feedback error";
+    return user;
+}
+
+if (registerForm) {
+    registerForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const formData = new FormData(registerForm);
+        const payload = Object.fromEntries(formData.entries());
+
+        if (!payload.name || !payload.email || !payload.password) {
+            setFeedback("Preencha todos os campos do cadastro.", "error");
+            return;
+        }
+
+        try {
+            await registerUser(payload);
+            setFeedback("Cadastro realizado com sucesso.", "success");
+            registerForm.reset();
+        } catch (error) {
+            setFeedback(error.message, "error");
+        }
     });
 }
 
-function voltarPagina() {
-  const destino = botaoVoltar.dataset.target;
+if (loginForm) {
+    loginForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
 
-  if (destino && destino !== "history") {
-    window.location.href = destino;
-    return;
-  }
+        const formData = new FormData(loginForm);
+        const payload = Object.fromEntries(formData.entries());
 
-  window.history.back();
+        if (!payload.email || !payload.password) {
+            setFeedback("Informe e-mail e senha para entrar.", "error");
+            return;
+        }
+
+        try {
+            const user = await loginUser(payload);
+            sessionStorage.setItem("NOME_USUARIO", user.name);
+            setFeedback(`Login realizado com sucesso. Bem-vindo, ${user.name}.`, "success");
+            loginForm.reset();
+            setTimeout(() => {
+                window.location.href = "dashboard.html";
+            }, 1500);
+        } catch (error) {
+            setFeedback(error.message, "error");
+        }
+    });
 }
 
-if (formularioCadastro) {
-  formularioCadastro.addEventListener("submit", function (event) {
-    event.preventDefault();
-    cadastrarUsuario();
-  });
-}
+if (backButton) {
+    backButton.addEventListener("click", () => {
+        const target = backButton.dataset.target;
 
-if (formularioLogin) {
-  formularioLogin.addEventListener("submit", function (event) {
-    event.preventDefault();
-    logarUsuario();
-  });
-}
+        if (target && target !== "history") {
+            window.location.href = target;
+            return;
+        }
 
-if (botaoVoltar) {
-  botaoVoltar.addEventListener("click", voltarPagina);
+        if (history.length > 1) {
+            history.back();
+        } else {
+            window.location.href = "index.html";
+        }
+    });
 }

@@ -65,7 +65,7 @@ class SideBarComponent extends HTMLElement {
 
     logout() {
         sessionStorage.clear();
-        window.location.href = "login.html"; 
+        window.location.href = "index.html"; 
     }
 
     render() {
@@ -324,22 +324,22 @@ class SideBarComponent extends HTMLElement {
                 <nav class="menu">
 
                     <div class="menu-item" data-page="dashboard">
-                        <img src="../assets/image-dashboard.png" class="menu-icon">
+                        <img src="./assets/image-dashboard.png" class="menu-icon">
                         <span>Dashboard</span>
                     </div>
 
                     <div class="menu-item" data-page="cliente">
-                        <img src="../assets/image-client.png" class="menu-icon">
+                        <img src="./assets/image-client.png" class="menu-icon">
                         <span>Cliente</span>
                     </div>
 
                     <div class="menu-item" data-page="ordemServico">
-                        <img src="../assets/image-service-order.png" class="menu-icon">
+                        <img src="./assets/image-service-order.png" class="menu-icon">
                         <span>Ordem de Serviço</span>
                     </div>
 
                     <div class="menu-item" data-page="relatorio">
-                        <img src="../assets/image-report.png" class="menu-icon">
+                        <img src="./assets/image-report.png" class="menu-icon">
                         <span>Relatórios</span>
                     </div>
 
