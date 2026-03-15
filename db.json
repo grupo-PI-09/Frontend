@@ -6,5 +6,31 @@
       "email": "ismaelpaivajr@gmail.com",
       "password": "Lucas2013@"
     }
+  ],
+  "workOrders": [
+    {
+      "id": 1772490000001,
+      "orderNumber": 90011,
+      "client": "Ricardo Souza",
+      "phone": "(11) 99999-9999",
+      "vehicle": "Toyota Corolla (ABC-1234)",
+      "entryDate": "26/02/2026",
+      "status": "Em andamento",
+      "description": "Reparo solicitado pelo cliente.",
+      "parts": "Filtro de oleo, pastilha de freio",
+      "notes": ""
+    },
+    {
+      "id": 1772490000002,
+      "orderNumber": 90010,
+      "client": "Ana Beatriz",
+      "phone": "(11) 98888-7777",
+      "vehicle": "Honda Civic (XYZ-9876)",
+      "entryDate": "12/02/2026",
+      "status": "Finalizada",
+      "description": "Reparo solicitado pelo cliente.",
+      "parts": "",
+      "notes": ""
+    }
   ]
 }
