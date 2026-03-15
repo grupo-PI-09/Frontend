@@ -4,9 +4,125 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <script src="../JS/sideBar.js"></script>
+    <link rel="stylesheet" href="../style/ordemServico.css">
+    <script src="../JS/sideBar.js" defer></script>
+    <script src="../JS/ordemServico.js" defer></script>
 </head>
 <body>
     <side-bar></side-bar>
+
+    <main id="main-content">
+
+        <div class="container">
+            <h1>Gerenciamento de Serviços</h1>
+            
+            <div class="header-actions">
+                <div class="search-box">
+                    <input type="text" id="inputSearch" placeholder="Pesquisar por nome do cliente" onkeyup="filterTable()">
+                </div>
+                <button class="btn-new-client" id="btnOpenModal">
+                    + Nova Ordem de Serviço
+                </button>
+            </div>
+
+            <table class="client-table" id="tableClients">
+                <thead>
+                    <tr>
+                        <th>N°OS</th>
+                        <th>Nome Cliente</th>
+                        <th>Carro</th>
+                        <th>Data de entrada</th>
+                        <th>Status</th>
+                        <th></th> 
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>90011</td>
+                        <td>Ricardo Souza</td>
+                        <td>Toyota Corolla (ABC-1234)</td>
+                        <td>26/02/2026</td>
+                        <td>Em andamento</td>
+                        <td>
+                            <button class="btn-detalhes">Ver mais</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>90010</td>
+                        <td>Ana Beatriz</td>
+                        <td>Honda Civic (XYZ-9876)</td>
+                        <td>12/02/2026</td>
+                        <td>Finalizada</td>
+                        <td>
+                            <button class="btn-detalhes">Ver mais</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <div id="modal-os" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-titulo">Cadastro de Ordem de Serviço</h2>
+            <span class="close-modal" id="btn-fechar-modal-os">&times;</span>
+        </div>
+
+        <form id="form-os">
+            <div class="modal-body-os">
+                <h3 class="section-title">DADOS DA OS</h3>
+                
+                <div class="row">
+                    <div class="input-group">
+                        <label>Nome do cliente *</label>
+                        <input type="text" id="os-cliente" placeholder="Ex: João Silva">
+                    </div>
+                    <div class="input-group">
+                        <label>Telefone para contato *</label>
+                        <input type="text" id="os-telefone" placeholder="(11) 99999-9999">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="input-group">
+                        <label>Veículo *</label>
+                        <input type="text" id="os-veiculo" placeholder="Toyota Corolla (ABC-1234)">
+                    </div>
+                    <div class="input-group">
+                        <label>Status *</label>
+                        <select id="os-status">
+                            <option value="">Selecione...</option>
+                            <option value="Aguardando">Aguardando Peças</option>
+                            <option value="Em andamento">Em andamento</option>
+                            <option value="Finalizada">Finalizada</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-group full">
+                    <label>Descrição do reparo *</label>
+                    <textarea id="os-descricao" rows="3" placeholder="Descreva o serviço a ser realizado..."></textarea>
+                </div>
+
+                <div class="input-group full">
+                    <label>Lista de peças</label>
+                    <textarea id="os-pecas" rows="3" placeholder="Ex: Filtro de óleo, pastilha de freio..."></textarea>
+                </div>
+
+                <div class="input-group full">
+                    <label>Observações</label>
+                    <textarea id="os-obs" rows="2" placeholder="Informações adicionais..."></textarea>
+                </div>
+            </div>
+        </form>
+
+        <div class="modal-footer">
+            <button type="button" class="btn-cancelar" id="btn-cancelar-os">Cancelar</button>
+            <button type="submit" form="form-os" class="btn-salvar" id="btn-salvar-os">Cadastrar OS</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

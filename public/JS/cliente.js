@@ -12,7 +12,7 @@
     // Abrir modal para adicionar novo cliente
     btnAbrir.onclick = function() {
         document.getElementById("form-cadastro").reset();
-        tituloModal.innerText = "Novo Cadastro";
+        tituloModal.innerText = "Cadastro Cliente + Veículo";
         btnSalvarPrincipal.innerText = "Salvar Cadastro";
         modalElemento.style.display = "block";
         linhaSendoEditada = null;
