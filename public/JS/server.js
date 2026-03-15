@@ -4,7 +4,9 @@ const feedback = document.getElementById("feedback");
 const botaoVoltar = document.querySelector(".back-button");
 
 function buscarUsuarios() {
-  return fetch("/users").then((response) => response.json());
+  return fetch("../users.json").then((response) => response.json()).then((dados) => {
+    return dados.users || dados;
+  });
 }
 
 function cadastrarUsuario() {
@@ -87,6 +89,8 @@ function logarUsuario() {
         ".";
       feedback.className = "feedback success";
       formularioLogin.reset();
+      sessionStorage.setItem("NOME_USUARIO", usuarioEncontrado.name);
+      setTimeout(() => { window.location.href = "dashboard.html"; }, 1500);
     })
     .catch((erro) => {
       console.error("Erro ao fazer login:", erro);

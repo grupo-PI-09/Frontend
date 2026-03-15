@@ -72,6 +72,7 @@ if (loginForm) {
             const result = await sendRequest("/Login", payload);
             setFeedback(`${result.message} Bem-vindo, ${result.user.name}.`, "success");
             loginForm.reset();
+            setTimeout(() => { window.location.href = "dashboard.html"; }, 1500);
         } catch (error) {
             setFeedback(error.message, "error");
         }
