@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RR Maxx | Editar Perfil</title>
+    <link rel="stylesheet" href="./style/perfil.css">
+    <script src="./JS/sideBar.js" defer></script>
+    <script src="./JS/userStore.js" defer></script>
+    <script src="./JS/editarPerfil.js" defer></script>
+</head>
+<body>
+    <side-bar></side-bar>
+
+    <main id="main-content">
+        <section class="profile-shell">
+            <article class="profile-card">
+                <header>
+                    <h1>Editar Perfil</h1>
+                    <p>Atualize seus dados de acesso ou exclua a conta atual.</p>
+                </header>
+
+                <form class="profile-form" id="profile-form" novalidate>
+                    <div class="profile-field">
+                        <label for="profile-name">Nome</label>
+                        <input id="profile-name" name="name" type="text" required>
+                    </div>
+
+                    <div class="profile-field">
+                        <label for="profile-email">E-mail</label>
+                        <input id="profile-email" name="email" type="email" required>
+                    </div>
+
+                    <div class="profile-field">
+                        <label for="profile-password">Senha</label>
+                        <input id="profile-password" name="password" type="password" required>
+                    </div>
+
+                    <div class="profile-actions">
+                        <button class="profile-button primary" type="submit">Salvar Alterações</button>
+                        <button class="profile-button danger" id="delete-account-button" type="button">Excluir Conta</button>
+                    </div>
+                </form>
+
+                <p class="profile-feedback" id="profile-feedback" aria-live="polite"></p>
+            </article>
+        </section>
+    </main>
+</body>
+</html>
