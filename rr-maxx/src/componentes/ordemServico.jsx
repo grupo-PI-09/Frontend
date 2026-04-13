@@ -9,7 +9,7 @@ export function OrdemServico() {
                         <input type="text" id="inputSearch" placeholder="Pesquisar por nome do cliente" />
                     </div>
                     <button className="btn-new-client" type="button">
-                        + Nova Ordem de Servicos
+                        + Nova Ordem de Servico
                     </button>
                 </div>
 
