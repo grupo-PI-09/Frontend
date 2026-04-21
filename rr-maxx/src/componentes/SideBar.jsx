@@ -1,8 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import imgDashboard from '../assets/image-dashboard.png'
+import imgCliente from '../assets/image-client.png'
+import imgOrdem from '../assets/image-service-order.png'
 
-export function SideBar() {
-    const [collapsed, setCollapsed] = useState(false)
+export function SideBar({ collapsed, setCollapsed }) {
     const [optionsOpen, setOptionsOpen] = useState(false)
+
+    const navigate = useNavigate()
+    const location = useLocation()
+    const currentPage = location.pathname.replace('/', '')
 
     const nomeUsuario = sessionStorage.getItem('NOME_USUARIO') || 'L'
     const inicial = nomeUsuario.charAt(0).toUpperCase()
@@ -16,15 +23,13 @@ export function SideBar() {
     }
 
     function handleMenuClick(page) {
-        window.location.href = `${page}.html`
+        navigate(`/${page}`)
     }
 
     function logout() {
         sessionStorage.clear()
-        window.location.href = 'index.html'
+        navigate('/login')
     }
-
-    const currentPage = window.location.pathname.split('/').pop().replace('.html', '')
 
     return (
         <>
@@ -42,10 +47,9 @@ export function SideBar() {
                     padding: 20px 0;
                     transition: width 0.3s ease;
                     z-index: 1000;
+                    overflow: hidden;
                 }
-                .sidebar.collapsed {
-                    width: 295px;
-                }
+                .sidebar.collapsed { width: 295px; }
                 .toggleMenu {
                     width: 40px;
                     height: 40px;
@@ -87,7 +91,7 @@ export function SideBar() {
                 .menu-item:hover, .menu-item.active {
                     background: #E31B13;
                     color: white;
-                    border-radius: 15px;
+                    border-radius: 0 15px 15px 0;
                 }
                 .menu-item.active::before {
                     content: '';
@@ -122,6 +126,7 @@ export function SideBar() {
                     display: flex;
                     justify-content: center;
                     margin-top: 20px;
+                    padding-bottom: 40px;
                 }
                 .profile {
                     width: 50px;
@@ -144,8 +149,8 @@ export function SideBar() {
                 }
                 .moreOptions {
                     display: none;
-                    position: absolute;
-                    bottom: 70px;
+                    position: fixed;
+                    bottom: 80px;
                     background: #ddd;
                     border-radius: 10px;
                     box-shadow: 0 4px 15px rgba(0,0,0,0.3);
@@ -153,8 +158,6 @@ export function SideBar() {
                     flex-direction: column;
                     z-index: 1001;
                     width: 200px;
-                    left: 50%;
-                    transform: translateX(-50%);
                 }
                 .moreOptions.open {
                     display: flex;
@@ -181,8 +184,8 @@ export function SideBar() {
                 }
                 .option-item.logout:hover { background: #fff0f0; }
                 @keyframes fadeIn {
-                    from { opacity: 0; transform: translate(-50%, 10px); }
-                    to { opacity: 1; transform: translate(-50%, 0); }
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
                 }
                 @media (max-width: 768px) {
                     .sidebar { width: 60px; }
@@ -199,26 +202,25 @@ export function SideBar() {
 
                 <nav className="menu">
                     <div className={`menu-item ${currentPage === 'dashboard' ? 'active' : ''}`} onClick={() => handleMenuClick('dashboard')}>
-                        <img src="./assets/image-dashboard.png" className="menu-icon" />
+                        <img src={imgDashboard} className="menu-icon" />
                         <span>Dashboard</span>
                     </div>
                     <div className={`menu-item ${currentPage === 'cliente' ? 'active' : ''}`} onClick={() => handleMenuClick('cliente')}>
-                        <img src="./assets/image-client.png" className="menu-icon" />
+                        <img src={imgCliente} className="menu-icon" />
                         <span>Cliente</span>
                     </div>
                     <div className={`menu-item ${currentPage === 'ordemServico' ? 'active' : ''}`} onClick={() => handleMenuClick('ordemServico')}>
-                        <img src="./assets/image-service-order.png" className="menu-icon" />
+                        <img src={imgOrdem} className="menu-icon" />
                         <span>Ordem de Serviço</span>
-                    </div>
-                    <div className={`menu-item ${currentPage === 'relatorio' ? 'active' : ''}`} onClick={() => handleMenuClick('relatorio')}>
-                        <img src="./assets/image-report.png" className="menu-icon" />
-                        <span>Relatórios</span>
                     </div>
                 </nav>
 
                 <div className="profile-container">
-                    <div className={`moreOptions ${optionsOpen ? 'open' : ''}`}>
-                        <div className="option-item" onClick={() => window.location.href = 'editarPerfil.html'}>
+                    <div
+                        className={`moreOptions ${optionsOpen ? 'open' : ''}`}
+                        style={{ left: collapsed ? '170px' : '25px' }}
+                    >
+                        <div className="option-item" onClick={() => navigate('/editarPerfil')}>
                             Editar Perfil
                         </div>
                         <div className="option-item logout" onClick={logout}>
