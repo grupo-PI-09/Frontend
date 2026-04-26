@@ -9,6 +9,11 @@ body {
     margin-left: 30px; 
     padding: 40px;
     transition: margin-left 0.3s ease; 
+    margin-top: 0;
+}
+
+#main-content h1 {
+    color: #141D24;
 }
 
 .header-actions {

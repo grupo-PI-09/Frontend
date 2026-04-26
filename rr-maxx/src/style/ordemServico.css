@@ -11,6 +11,10 @@ body {
     transition: margin-left 0.3s ease; 
 }
 
+#main-content h1 {
+    color: #141D24;
+}
+
 .header-actions {
     display: flex;
     gap: 20px;
