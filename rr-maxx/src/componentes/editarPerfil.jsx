@@ -2,7 +2,7 @@ import '../style/perfil.css'
 
 export function EditarPerfil() {
     return (
-        <main id="main-content">
+        <main id="main-content" className="perfil-content">
             <section className="profile-shell">
                 <article className="profile-card">
                     <header>

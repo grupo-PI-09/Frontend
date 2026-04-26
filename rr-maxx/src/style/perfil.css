@@ -5,7 +5,7 @@ body {
     margin: 0;
 }
 
-#main-content {
+#main-content.perfil-content {
     margin-left: 30px;
     min-height: 100vh;
     padding: 48px 40px;

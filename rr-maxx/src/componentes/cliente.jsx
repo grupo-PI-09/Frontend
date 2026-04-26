@@ -2,7 +2,7 @@ import { FaSearch, FaPencilAlt, FaTrash } from 'react-icons/fa'
 
 export function Cliente() {
     return (
-        <main id="main-content">
+        <main id="main-content" className="cliente-content">
             <div className="container">
                 <h1>Gerenciamento de Clientes e Veículos</h1>
 

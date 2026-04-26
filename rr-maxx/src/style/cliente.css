@@ -13,13 +13,14 @@ body {
 }
 
 #main-content h1 {
-    color: #141D24;
+    color: #141D24; 
+    margin-bottom: 32px;
 }
 
 .header-actions {
     display: flex;
     gap: 20px;
-    margin-bottom: 20px;
+    margin-bottom: 40px;
 }
 
 .search-box input {
