@@ -2,7 +2,7 @@ import { FaSearch, FaPencilAlt, FaTrash } from 'react-icons/fa'
 
 export function OrdemServico() {
     return (
-        <main id="main-content">
+        <main id="main-content" className="os-content">
             <div className="container">
                 <h1>Gerenciamento de Serviços</h1>
 
