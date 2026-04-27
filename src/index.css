@@ -1,0 +1,12 @@
+html,
+body,
+#root {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    background: #f5f5f5;
+    color: #141d24;
+    font-family: 'Poppins', sans-serif;
+}
