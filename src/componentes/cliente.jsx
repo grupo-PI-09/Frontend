@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { FaSearch, FaPencilAlt, FaTrash } from 'react-icons/fa'
+import axios from 'axios'
 import { apiRequest } from '../services/api'
 import '../style/cliente.css'
 
@@ -7,8 +8,19 @@ export function Cliente() {
     const [modalOpen, setModalOpen] = useState(false)
     const [placaFeedback, setPlacaFeedback] = useState({ message: '', type: '' })
     const [cadastroFeedback, setCadastroFeedback] = useState({ message: '', type: '' })
+    const [cepFeedback, setCepFeedback] = useState({ message: '', type: '' })
     const [consultandoPlaca, setConsultandoPlaca] = useState(false)
+    const [buscandoCep, setBuscandoCep] = useState(false)
     const [ultimaPlacaConsultada, setUltimaPlacaConsultada] = useState('')
+    const [formularioEndereco, setFormularioEndereco] = useState({
+        cep: '',
+        logradouro: '',
+        bairro: '',
+        cidade: '',
+        estado: '',
+        complemento: '',
+        numero: ''
+    })
     const [formularioVeiculo, setFormularioVeiculo] = useState({
         placa: '',
         modelo: '',
@@ -20,6 +32,51 @@ export function Cliente() {
 
     function atualizarCampoVeiculo(campo, valor) {
         setFormularioVeiculo((atual) => ({ ...atual, [campo]: valor }))
+    }
+
+    function atualizarCampoEndereco(campo, valor) {
+        setFormularioEndereco((atual) => ({ ...atual, [campo]: valor }))
+    }
+
+    async function buscarEnderecoPorCep(cepInformado = formularioEndereco.cep) {
+        const cepNormalizado = cepInformado.replace(/\D/g, '')
+
+        if (!cepNormalizado) {
+            setCepFeedback({ message: '', type: '' })
+            return
+        }
+
+        if (cepNormalizado.length !== 8) {
+            setCepFeedback({ message: 'Digite um CEP válido com 8 números.', type: 'error' })
+            return
+        }
+
+        setBuscandoCep(true)
+        setCepFeedback({ message: 'Buscando CEP...', type: 'success' })
+
+        try {
+            const { data } = await axios.get(`https://viacep.com.br/ws/${cepNormalizado}/json/`)
+
+            if (data.erro) {
+                setCepFeedback({ message: 'CEP não encontrado.', type: 'error' })
+                return
+            }
+
+            setFormularioEndereco((atual) => ({
+                ...atual,
+                cep: cepNormalizado,
+                logradouro: data.logradouro || '',
+                bairro: data.bairro || '',
+                cidade: data.localidade || '',
+                estado: data.uf || '',
+                complemento: data.complemento || atual.complemento
+            }))
+            setCepFeedback({ message: 'CEP encontrado.', type: 'success' })
+        } catch {
+            setCepFeedback({ message: 'Erro ao buscar CEP.', type: 'error' })
+        } finally {
+            setBuscandoCep(false)
+        }
     }
 
     function informarEscopoDaPoc() {
@@ -185,17 +242,87 @@ export function Cliente() {
                             <div className="row">
                                 <div className="input-group">
                                     <label htmlFor="cep">CEP</label>
-                                    <input id="cep" type="text" placeholder="00000-000" />
+                                    <input
+                                        id="cep"
+                                        type="text"
+                                        placeholder="00000-000"
+                                        value={formularioEndereco.cep}
+                                        onChange={(e) => atualizarCampoEndereco('cep', e.target.value)}
+                                        onBlur={(e) => buscarEnderecoPorCep(e.target.value)}
+                                        aria-describedby="cep-feedback"
+                                    />
                                 </div>
                                 <div className="input-group">
-                                    <label htmlFor="complemento">Complemento</label>
-                                    <input id="complemento" type="text" placeholder="Apto, bloco..." />
+                                    <label htmlFor="numero">Número</label>
+                                    <input
+                                        id="numero"
+                                        type="text"
+                                        placeholder="123"
+                                        value={formularioEndereco.numero}
+                                        onChange={(e) => atualizarCampoEndereco('numero', e.target.value)}
+                                    />
                                 </div>
                             </div>
 
+                            <p id="cep-feedback" className={`feedback ${cepFeedback.type}`} aria-live="polite">
+                                {buscandoCep ? 'Buscando CEP...' : cepFeedback.message}
+                            </p>
+
                             <div className="input-group full">
-                                <label htmlFor="endereco">Endereço</label>
-                                <input id="endereco" type="text" placeholder="Rua, número, bairro - UF" />
+                                <label htmlFor="logradouro">Logradouro</label>
+                                <input
+                                    id="logradouro"
+                                    type="text"
+                                    placeholder="Rua, avenida..."
+                                    value={formularioEndereco.logradouro}
+                                    onChange={(e) => atualizarCampoEndereco('logradouro', e.target.value)}
+                                />
+                            </div>
+
+                            <div className="row">
+                                <div className="input-group">
+                                    <label htmlFor="bairro">Bairro</label>
+                                    <input
+                                        id="bairro"
+                                        type="text"
+                                        placeholder="Bairro"
+                                        value={formularioEndereco.bairro}
+                                        onChange={(e) => atualizarCampoEndereco('bairro', e.target.value)}
+                                    />
+                                </div>
+                                <div className="input-group">
+                                    <label htmlFor="cidade">Cidade</label>
+                                    <input
+                                        id="cidade"
+                                        type="text"
+                                        placeholder="Cidade"
+                                        value={formularioEndereco.cidade}
+                                        onChange={(e) => atualizarCampoEndereco('cidade', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="row">
+                                <div className="input-group">
+                                    <label htmlFor="estado">Estado</label>
+                                    <input
+                                        id="estado"
+                                        type="text"
+                                        placeholder="UF"
+                                        value={formularioEndereco.estado}
+                                        onChange={(e) => atualizarCampoEndereco('estado', e.target.value)}
+                                    />
+                                </div>
+                                <div className="input-group">
+                                    <label htmlFor="complemento">Complemento</label>
+                                    <input
+                                        id="complemento"
+                                        type="text"
+                                        placeholder="Apto, bloco..."
+                                        value={formularioEndereco.complemento}
+                                        onChange={(e) => atualizarCampoEndereco('complemento', e.target.value)}
+                                    />
+                                </div>
                             </div>
                         </div>
 
