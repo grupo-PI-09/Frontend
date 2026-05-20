@@ -27,13 +27,19 @@ function Layout() {
         background: mostrarSidebar ? '#f5f5f5' : 'transparent'
       }}>
         <Routes>
-          <Route path="/" element={<Navigate to={isAuthenticated() ? '/dashboard' : '/login'} />} />
+          {/* <Route path="/" element={<Navigate to={isAuthenticated() ? '/dashboard' : '/login'} />} />
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Cadastro />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/cliente" element={<ProtectedRoute><Cliente /></ProtectedRoute>} />
           <Route path="/ordemServico" element={<ProtectedRoute><OrdemServico /></ProtectedRoute>} />
-          <Route path="/editarPerfil" element={<ProtectedRoute><EditarPerfil /></ProtectedRoute>} />
+          <Route path="/editarPerfil" element={<ProtectedRoute><EditarPerfil /></ProtectedRoute>} /> */}
+
+          <Route path="/" element={<Navigate to="/dashboard" />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/cliente" element={<Cliente />} />
+          <Route path="/ordemServico" element={<OrdemServico />} />
+          <Route path="/editarPerfil" element={<EditarPerfil />} />
         </Routes>
       </div>
     </>
