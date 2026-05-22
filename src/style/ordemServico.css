@@ -4,9 +4,9 @@
     transition: margin-left 0.3s ease;
 }
 
-#main-content h1 {
+.os-content h1 {
     color: #141D24;
-    margin-bottom: 32px;
+    margin-bottom: 16px;
 }
 
 .header-actions {

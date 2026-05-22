@@ -5,9 +5,9 @@
     margin-top: 0;
 }
 
-#main-content h1 {
-    color: #141D24; 
-    margin-bottom: 32px;
+.cliente-content h1 {
+    color: #141D24;
+    margin-bottom: 16px;
 }
 
 .header-actions {
