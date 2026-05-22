@@ -200,8 +200,6 @@ export function OrdemServico() {
                     </button>
                 </div>
 
-                <p className="feedback" id="feedback" aria-live="polite"></p>
-
                 <table className="client-table" id="tableClients" aria-label="Tabela de ordens de serviço">
                     <thead>
                         <tr>
