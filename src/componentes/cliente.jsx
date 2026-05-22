@@ -16,7 +16,27 @@ export function Cliente() {
     const [veiculos, setVeiculos] = useState([{ id: 1 }])
     const [paginaAtual, setPaginaAtual] = useState(1)
     const ITENS_POR_PAGINA = 8
-    const clientes = []
+    const clientes = [
+    {
+        nome: 'João Silva',
+        email: 'joao.silva@email.com',
+        telefone: '(11) 99999-1234',
+        veiculo: 'Toyota Corolla / ABC-1234',
+    },
+    {
+        nome: 'Maria Souza',
+        email: 'maria.souza@email.com',
+        telefone: '(11) 98888-5678',
+        veiculo: 'Honda Civic / XYZ-5678',
+    },
+    {
+        nome: 'Carlos Oliveira',
+        email: 'carlos.oliveira@email.com',
+        telefone: '(11) 97777-9012',
+        veiculo: 'Volkswagen Gol / DEF-9012',
+    },
+]
+    
     const clientesFiltrados = clientes.filter(c =>
     c.nome.toLowerCase().includes(busca.toLowerCase())
     )
