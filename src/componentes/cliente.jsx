@@ -15,24 +15,137 @@ const estadoInicialVeiculo = {
     placa: '', modelo: '', marca: '', ano: '', km: '', combustivel: ''
 }
 
+function criarVeiculoVazio(localId = 1) {
+    return { ...estadoInicialVeiculo, localId }
+}
+
+function prepararVeiculo(veiculo = {}, localId = 1) {
+    if (typeof veiculo === 'string') {
+        return { ...criarVeiculoVazio(localId), modelo: veiculo }
+    }
+
+    return { ...estadoInicialVeiculo, ...veiculo, localId: veiculo.localId ?? localId }
+}
+
+function proximoLocalId(lista) {
+    return lista.reduce((maiorId, veiculo) => Math.max(maiorId, Number(veiculo.localId) || 0), 0) + 1
+}
+
+// Fica fora de Cliente para o React preservar os inputs entre re-renderizações.
+function BlocoVeiculos({
+    lista,
+    onAtualizar,
+    onAdicionar,
+    onRemover,
+    consultaPlaca = false,
+    onConsultarPlaca,
+    consultandoPlacaId = null,
+    placaFeedback = { message: '', type: '', veiculoLocalId: null }
+}) {
+    return (
+        <div>
+            {lista.map((veiculo, index) => {
+                const consultandoEsteVeiculo = consultandoPlacaId === veiculo.localId
+                const feedbackDesteVeiculo = placaFeedback.veiculoLocalId === veiculo.localId
+
+                return (
+                    <div className="vehicle-card" key={veiculo.localId ?? veiculo.id ?? index}>
+                        <span className="vehicle-badge">Veículo {index + 1}</span>
+                        {lista.length > 1 && (
+                            <span className="remove-vehicle-btn" onClick={() => onRemover(index)}>×</span>
+                        )}
+
+                        <div className="row">
+                            <div className="input-group">
+                                <label>Placa *</label>
+                                <input type="text" placeholder="ABC1D23"
+                                    value={veiculo.placa ?? ''}
+                                    onChange={e => onAtualizar(index, 'placa', e.target.value.toUpperCase())}
+                                    aria-required="true" />
+                            </div>
+                        </div>
+
+                        {consultaPlaca && (
+                            <div className="input-group full">
+                                <button type="button" className="btn-salvar"
+                                    onClick={() => onConsultarPlaca(index, veiculo.placa ?? '')}
+                                    disabled={consultandoPlacaId !== null}>
+                                    {consultandoEsteVeiculo ? 'Consultando placa...' : 'Consultar placa'}
+                                </button>
+                                <p className={`feedback ${feedbackDesteVeiculo ? placaFeedback.type : ''}`} aria-live="polite">
+                                    {feedbackDesteVeiculo ? placaFeedback.message : ''}
+                                </p>
+                            </div>
+                        )}
+
+                        <div className="row">
+                            <div className="input-group">
+                                <label>Modelo *</label>
+                                <input type="text" placeholder="Ex: Civic EXL"
+                                    value={veiculo.modelo ?? ''}
+                                    onChange={e => onAtualizar(index, 'modelo', e.target.value)}
+                                    aria-required="true" />
+                            </div>
+                            <div className="input-group">
+                                <label>Marca *</label>
+                                <input type="text" placeholder="Ex: Honda"
+                                    value={veiculo.marca ?? ''}
+                                    onChange={e => onAtualizar(index, 'marca', e.target.value)}
+                                    aria-required="true" />
+                            </div>
+                        </div>
+
+                        <div className="row-triple">
+                            <div className="input-group">
+                                <label>Ano</label>
+                                <input type="text" placeholder="2022"
+                                    value={veiculo.ano ?? ''}
+                                    onChange={e => onAtualizar(index, 'ano', e.target.value)} />
+                            </div>
+                            <div className="input-group">
+                                <label>KM atual</label>
+                                <input type="text" placeholder="45.000"
+                                    value={veiculo.km ?? ''}
+                                    onChange={e => onAtualizar(index, 'km', e.target.value)} />
+                            </div>
+                            <div className="input-group">
+                                <label>Combustível</label>
+                                <select value={veiculo.combustivel ?? ''}
+                                    onChange={e => onAtualizar(index, 'combustivel', e.target.value)}>
+                                    <option value="">Selecione...</option>
+                                    <option value="flex">Flex</option>
+                                    <option value="gasolina">Gasolina</option>
+                                    <option value="diesel">Diesel</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                )
+            })}
+            <button type="button" className="btn-add-more" onClick={onAdicionar}>
+                + Adicionar outro veículo
+            </button>
+        </div>
+    )
+}
+
 export function Cliente() {
     const [modalOpen, setModalOpen] = useState(false)
     const [modalEditarOpen, setModalEditarOpen] = useState(false)
     const [modalExcluirOpen, setModalExcluirOpen] = useState(false)
     const [busca, setBusca] = useState('')
     const [paginaAtual, setPaginaAtual] = useState(1)
-    const [clientes, setClientes] = useState([])
+    const [clientes] = useState([])
 
     // ── Cadastro ──
-    const [placaFeedback, setPlacaFeedback] = useState({ message: '', type: '' })
+    const [placaFeedback, setPlacaFeedback] = useState({ message: '', type: '', veiculoLocalId: null })
     const [cadastroFeedback, setCadastroFeedback] = useState({ message: '', type: '' })
     const [cepFeedback, setCepFeedback] = useState({ message: '', type: '' })
-    const [consultandoPlaca, setConsultandoPlaca] = useState(false)
+    const [consultandoPlacaId, setConsultandoPlacaId] = useState(null)
     const [buscandoCep, setBuscandoCep] = useState(false)
-    const [ultimaPlacaConsultada, setUltimaPlacaConsultada] = useState('')
-    const [veiculos, setVeiculos] = useState([{ id: 1 }])
+    const [ultimasPlacasConsultadas, setUltimasPlacasConsultadas] = useState({})
+    const [veiculos, setVeiculos] = useState([criarVeiculoVazio()])
     const [formularioEndereco, setFormularioEndereco] = useState(estadoInicialEndereco)
-    const [formularioVeiculo, setFormularioVeiculo] = useState(estadoInicialVeiculo)
 
     // ── Edição ──
     const [clienteEditando, setClienteEditando] = useState(null)
@@ -56,12 +169,12 @@ export function Cliente() {
     // ── Funções cadastro ──
     function abrirModal() {
         setFormularioEndereco(estadoInicialEndereco)
-        setFormularioVeiculo(estadoInicialVeiculo)
-        setVeiculos([{ id: 1 }])
-        setPlacaFeedback({ message: '', type: '' })
+        setVeiculos([criarVeiculoVazio()])
+        setPlacaFeedback({ message: '', type: '', veiculoLocalId: null })
         setCepFeedback({ message: '', type: '' })
         setCadastroFeedback({ message: '', type: '' })
-        setUltimaPlacaConsultada('')
+        setUltimasPlacasConsultadas({})
+        setConsultandoPlacaId(null)
         setModalOpen(true)
     }
 
@@ -70,15 +183,50 @@ export function Cliente() {
     }
 
     function adicionarVeiculo() {
-        setVeiculos([...veiculos, { placa: '', modelo: '', marca: '', ano: '', km: '', combustivel: '' }])
+        setVeiculos(vs => [...vs, criarVeiculoVazio(proximoLocalId(vs))])
     }
 
     function removerVeiculo(index) {
-        setVeiculos(veiculos.filter((_, i) => i !== index))
+        const veiculoRemovido = veiculos[index]
+        setVeiculos(vs => vs.filter((_, i) => i !== index))
+
+        if (veiculoRemovido?.localId) {
+            setUltimasPlacasConsultadas(placas => {
+                const restante = { ...placas }
+                delete restante[veiculoRemovido.localId]
+                return restante
+            })
+            setPlacaFeedback(feedback =>
+                feedback.veiculoLocalId === veiculoRemovido.localId
+                    ? { message: '', type: '', veiculoLocalId: null }
+                    : feedback
+            )
+        }
     }
 
-    function atualizarCampoVeiculo(campo, valor) {
-        setFormularioVeiculo(f => ({ ...f, [campo]: valor }))
+    function atualizarCampoVeiculo(index, campo, valor) {
+        const veiculoAtual = veiculos[index]
+
+        if (campo === 'placa' && veiculoAtual?.localId) {
+            const placaNormalizada = valor.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+
+            setUltimasPlacasConsultadas(placas => {
+                if (!placas[veiculoAtual.localId] || placas[veiculoAtual.localId] === placaNormalizada) return placas
+
+                const restante = { ...placas }
+                delete restante[veiculoAtual.localId]
+                return restante
+            })
+            setPlacaFeedback(feedback =>
+                feedback.veiculoLocalId === veiculoAtual.localId
+                    ? { message: '', type: '', veiculoLocalId: null }
+                    : feedback
+            )
+        }
+
+        setVeiculos(vs => vs.map((veiculo, i) =>
+            i === index ? { ...veiculo, [campo]: valor } : veiculo
+        ))
     }
 
     function atualizarCampoEndereco(campo, valor) {
@@ -112,42 +260,53 @@ export function Cliente() {
         }
     }
 
-    async function consultarPlaca(placaInformada = formularioVeiculo.placa) {
+    async function consultarPlaca(index, placaInformada) {
+        const veiculoAtual = veiculos[index]
+        if (!veiculoAtual) return
+
         const placaNormalizada = placaInformada.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
         if (placaNormalizada.length < 7) {
-            setPlacaFeedback({ message: 'Digite uma placa válida para consultar.', type: 'error' })
-            setUltimaPlacaConsultada('')
+            setPlacaFeedback({ message: 'Digite uma placa válida para consultar.', type: 'error', veiculoLocalId: veiculoAtual.localId })
+            setUltimasPlacasConsultadas(placas => {
+                const restante = { ...placas }
+                delete restante[veiculoAtual.localId]
+                return restante
+            })
             return
         }
-        if (placaNormalizada === ultimaPlacaConsultada && placaFeedback.type === 'success') return
-        setConsultandoPlaca(true)
-        setPlacaFeedback({ message: '', type: '' })
+        if (
+            ultimasPlacasConsultadas[veiculoAtual.localId] === placaNormalizada &&
+            placaFeedback.veiculoLocalId === veiculoAtual.localId &&
+            placaFeedback.type === 'success'
+        ) return
+
+        setConsultandoPlacaId(veiculoAtual.localId)
+        setPlacaFeedback({ message: '', type: '', veiculoLocalId: veiculoAtual.localId })
         try {
             const data = await apiRequest(`/placas/${placaNormalizada}`)
-            setFormularioVeiculo(f => ({
-                ...f,
-                placa: placaNormalizada,
-                modelo: data.modelo || '',
-                marca: data.marca || '',
-                ano: data.ano || ''
-            }))
-            setUltimaPlacaConsultada(placaNormalizada)
-            setPlacaFeedback({ message: 'Placa consultada com sucesso.', type: 'success' })
-        } catch (error) {
-            setUltimaPlacaConsultada('')
-            setPlacaFeedback({ message: error.message, type: 'error' })
-        } finally {
-            setConsultandoPlaca(false)
-        }
-    }
 
-    function aoAlterarPlaca(evento) {
-        const valorFormatado = evento.target.value.toUpperCase()
-        const placaNormalizada = valorFormatado.replace(/[^a-zA-Z0-9]/g, '')
-        setFormularioVeiculo(f => ({ ...f, placa: valorFormatado }))
-        if (placaNormalizada.length < 7) setUltimaPlacaConsultada('')
-        if (placaNormalizada.length === 7 && placaNormalizada !== ultimaPlacaConsultada) {
-            consultarPlaca(valorFormatado)
+            setVeiculos(vs => vs.map(veiculo => {
+                if (veiculo.localId !== veiculoAtual.localId) return veiculo
+
+                return {
+                    ...veiculo,
+                    placa: placaNormalizada,
+                    modelo: data.modelo || '',
+                    marca: data.marca || '',
+                    ano: data.ano || ''
+                }
+            }))
+            setUltimasPlacasConsultadas(placas => ({ ...placas, [veiculoAtual.localId]: placaNormalizada }))
+            setPlacaFeedback({ message: 'Placa consultada com sucesso.', type: 'success', veiculoLocalId: veiculoAtual.localId })
+        } catch (error) {
+            setUltimasPlacasConsultadas(placas => {
+                const restante = { ...placas }
+                delete restante[veiculoAtual.localId]
+                return restante
+            })
+            setPlacaFeedback({ message: error.message, type: 'error', veiculoLocalId: veiculoAtual.localId })
+        } finally {
+            setConsultandoPlacaId(null)
         }
     }
 
@@ -175,8 +334,8 @@ export function Cliente() {
         })
         setVeiculosEdicao(
             cliente.veiculos?.length
-                ? cliente.veiculos
-                : [{ placa: '', modelo: '', marca: '', ano: '', km: '', combustivel: '' }]
+                ? cliente.veiculos.map((veiculo, index) => prepararVeiculo(veiculo, index + 1))
+                : [criarVeiculoVazio()]
         )
         setCepFeedbackEdicao({ message: '', type: '' })
         setModalEditarOpen(true)
@@ -200,7 +359,7 @@ export function Cliente() {
     }
 
     function adicionarVeiculoEdicao() {
-        setVeiculosEdicao(vs => [...vs, { placa: '', modelo: '', marca: '', ano: '', km: '', combustivel: '' }])
+        setVeiculosEdicao(vs => [...vs, criarVeiculoVazio(proximoLocalId(vs))])
     }
 
     function removerVeiculoEdicao(index) {
@@ -234,6 +393,7 @@ export function Cliente() {
     }
 
     function handleSalvarEdicao() {
+        if (!clienteEditando) return
         // TODO: enviar ao back end com clienteEditando.id
         fecharModalEditar()
     }
@@ -252,90 +412,6 @@ export function Cliente() {
     function handleExcluirCliente() {
         // TODO: chamar back end para excluir clienteExcluindo.id
         fecharModalExcluir()
-    }
-
-    // ── Bloco de veículos reutilizável ──
-    function BlocoVeiculos({ lista, onAtualizar, onAdicionar, onRemover, consultaPlaca = false }) {
-        return (
-            <div>
-                {lista.map((veiculo, index) => (
-                    <div className="vehicle-card" key={index}>
-                        <span className="vehicle-badge">Veículo {index + 1}</span>
-                        {lista.length > 1 && (
-                            <span className="remove-vehicle-btn" onClick={() => onRemover(index)}>×</span>
-                        )}
-
-                        <div className="row">
-                            <div className="input-group">
-                                <label>Placa *</label>
-                                <input type="text" placeholder="ABC1D23"
-                                    value={veiculo.placa}
-                                    onChange={e => onAtualizar(index, 'placa', e.target.value.toUpperCase())}
-                                    aria-required="true" />
-                            </div>
-                        </div>
-
-                        {consultaPlaca && (
-                            <div className="input-group full">
-                                <button type="button" className="btn-salvar"
-                                    onClick={() => consultarPlaca(veiculo.placa)}
-                                    disabled={consultandoPlaca}>
-                                    {consultandoPlaca ? 'Consultando placa...' : 'Consultar placa'}
-                                </button>
-                                <p className={`feedback ${placaFeedback.type}`} aria-live="polite">
-                                    {placaFeedback.message}
-                                </p>
-                            </div>
-                        )}
-
-                        <div className="row">
-                            <div className="input-group">
-                                <label>Modelo *</label>
-                                <input type="text" placeholder="Ex: Civic EXL"
-                                    value={veiculo.modelo}
-                                    onChange={e => onAtualizar(index, 'modelo', e.target.value)}
-                                    aria-required="true" />
-                            </div>
-                            <div className="input-group">
-                                <label>Marca *</label>
-                                <input type="text" placeholder="Ex: Honda"
-                                    value={veiculo.marca}
-                                    onChange={e => onAtualizar(index, 'marca', e.target.value)}
-                                    aria-required="true" />
-                            </div>
-                        </div>
-
-                        <div className="row-triple">
-                            <div className="input-group">
-                                <label>Ano</label>
-                                <input type="text" placeholder="2022"
-                                    value={veiculo.ano}
-                                    onChange={e => onAtualizar(index, 'ano', e.target.value)} />
-                            </div>
-                            <div className="input-group">
-                                <label>KM atual</label>
-                                <input type="text" placeholder="45.000"
-                                    value={veiculo.km}
-                                    onChange={e => onAtualizar(index, 'km', e.target.value)} />
-                            </div>
-                            <div className="input-group">
-                                <label>Combustível</label>
-                                <select value={veiculo.combustivel}
-                                    onChange={e => onAtualizar(index, 'combustivel', e.target.value)}>
-                                    <option value="">Selecione...</option>
-                                    <option value="flex">Flex</option>
-                                    <option value="gasolina">Gasolina</option>
-                                    <option value="diesel">Diesel</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-                <button type="button" className="btn-add-more" onClick={onAdicionar}>
-                    + Adicionar outro veículo
-                </button>
-            </div>
-        )
     }
 
     return (
@@ -524,11 +600,14 @@ export function Cliente() {
                         <div className="column-right">
                             <h3 className="section-title">DADOS DO VEÍCULO</h3>
                             <BlocoVeiculos
-                                lista={veiculos.map(() => formularioVeiculo)}
-                                onAtualizar={(_, campo, valor) => atualizarCampoVeiculo(campo, valor)}
+                                lista={veiculos}
+                                onAtualizar={atualizarCampoVeiculo}
                                 onAdicionar={adicionarVeiculo}
                                 onRemover={removerVeiculo}
                                 consultaPlaca={true}
+                                onConsultarPlaca={consultarPlaca}
+                                consultandoPlacaId={consultandoPlacaId}
+                                placaFeedback={placaFeedback}
                             />
                         </div>
                     </div>
