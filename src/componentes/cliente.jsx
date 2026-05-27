@@ -1,7 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FaSearch, FaPencilAlt, FaTrash } from 'react-icons/fa'
 import axios from 'axios'
-import { apiRequest } from '../services/api'
+import {
+    atualizarCliente,
+    criarCliente,
+    excluirCliente,
+    listarClientesComVeiculos
+} from '../services/clienteService'
+import {
+    consultarPlacaBackend,
+    mapVeiculoTelaParaApi,
+    salvarVeiculosDoCliente
+} from '../services/veiculoService'
 import '../style/cliente.css'
 
 const ITENS_POR_PAGINA = 8
@@ -9,6 +19,10 @@ const ITENS_POR_PAGINA = 8
 const estadoInicialEndereco = {
     cep: '', logradouro: '', bairro: '', cidade: '',
     estado: '', complemento: '', numero: ''
+}
+
+const estadoInicialCliente = {
+    nomeCompleto: '', cpf: '', dtNascimento: '', telefone: '', email: ''
 }
 
 const estadoInicialVeiculo = {
@@ -24,7 +38,13 @@ function prepararVeiculo(veiculo = {}, localId = 1) {
         return { ...criarVeiculoVazio(localId), modelo: veiculo }
     }
 
-    return { ...estadoInicialVeiculo, ...veiculo, localId: veiculo.localId ?? localId }
+    return {
+        ...estadoInicialVeiculo,
+        ...veiculo,
+        km: veiculo.km ?? veiculo.quilometragem ?? '',
+        combustivel: veiculo.combustivel ?? veiculo.tipoCombustivel ?? '',
+        localId: veiculo.localId ?? localId
+    }
 }
 
 function proximoLocalId(lista) {
@@ -97,24 +117,25 @@ function BlocoVeiculos({
 
                         <div className="row-triple">
                             <div className="input-group">
-                                <label>Ano</label>
+                                <label>Ano *</label>
                                 <input type="text" placeholder="2022"
                                     value={veiculo.ano ?? ''}
                                     onChange={e => onAtualizar(index, 'ano', e.target.value)} />
                             </div>
                             <div className="input-group">
-                                <label>KM atual</label>
+                                <label>KM atual *</label>
                                 <input type="text" placeholder="45.000"
                                     value={veiculo.km ?? ''}
                                     onChange={e => onAtualizar(index, 'km', e.target.value)} />
                             </div>
                             <div className="input-group">
-                                <label>Combustível</label>
+                                <label>Combustível *</label>
                                 <select value={veiculo.combustivel ?? ''}
                                     onChange={e => onAtualizar(index, 'combustivel', e.target.value)}>
                                     <option value="">Selecione...</option>
                                     <option value="flex">Flex</option>
                                     <option value="gasolina">Gasolina</option>
+                                    <option value="etanol">Etanol</option>
                                     <option value="diesel">Diesel</option>
                                 </select>
                             </div>
@@ -135,32 +156,56 @@ export function Cliente() {
     const [modalExcluirOpen, setModalExcluirOpen] = useState(false)
     const [busca, setBusca] = useState('')
     const [paginaAtual, setPaginaAtual] = useState(1)
-    const [clientes] = useState([])
+    const [clientes, setClientes] = useState([])
+    const [carregandoClientes, setCarregandoClientes] = useState(false)
+    const [feedbackGeral, setFeedbackGeral] = useState({ message: '', type: '' })
 
     // ── Cadastro ──
     const [placaFeedback, setPlacaFeedback] = useState({ message: '', type: '', veiculoLocalId: null })
     const [cadastroFeedback, setCadastroFeedback] = useState({ message: '', type: '' })
     const [cepFeedback, setCepFeedback] = useState({ message: '', type: '' })
+    const [salvandoCadastro, setSalvandoCadastro] = useState(false)
     const [consultandoPlacaId, setConsultandoPlacaId] = useState(null)
     const [buscandoCep, setBuscandoCep] = useState(false)
     const [ultimasPlacasConsultadas, setUltimasPlacasConsultadas] = useState({})
+    const [formularioCadastro, setFormularioCadastro] = useState(estadoInicialCliente)
     const [veiculos, setVeiculos] = useState([criarVeiculoVazio()])
     const [formularioEndereco, setFormularioEndereco] = useState(estadoInicialEndereco)
 
     // ── Edição ──
     const [clienteEditando, setClienteEditando] = useState(null)
     const [clienteExcluindo, setClienteExcluindo] = useState(null)
-    const [formularioEdicao, setFormularioEdicao] = useState({
-        nomeCompleto: '', cpf: '', telefone: '', email: ''
-    })
+    const [formularioEdicao, setFormularioEdicao] = useState(estadoInicialCliente)
     const [formularioEnderecoEdicao, setFormularioEnderecoEdicao] = useState(estadoInicialEndereco)
     const [veiculosEdicao, setVeiculosEdicao] = useState([])
+    const [edicaoFeedback, setEdicaoFeedback] = useState({ message: '', type: '' })
     const [cepFeedbackEdicao, setCepFeedbackEdicao] = useState({ message: '', type: '' })
     const [buscandoCepEdicao, setBuscandoCepEdicao] = useState(false)
+    const [salvandoEdicao, setSalvandoEdicao] = useState(false)
+    const [excluindoCliente, setExcluindoCliente] = useState(false)
+
+    useEffect(() => {
+        carregarClientes()
+    }, [])
+
+    async function carregarClientes() {
+        setCarregandoClientes(true)
+
+        try {
+            const clientesApi = await listarClientesComVeiculos()
+            setClientes(clientesApi)
+            setFeedbackGeral(feedback => feedback.type === 'error' ? { message: '', type: '' } : feedback)
+        } catch (error) {
+            console.error('Erro ao carregar clientes:', error)
+            setFeedbackGeral({ message: error.message, type: 'error' })
+        } finally {
+            setCarregandoClientes(false)
+        }
+    }
 
     // ── Paginação ──
     const clientesFiltrados = clientes.filter(c =>
-        c.nome.toLowerCase().includes(busca.toLowerCase())
+        String(c.nome ?? '').toLowerCase().includes(busca.toLowerCase())
     )
     const totalPaginas = Math.ceil(clientesFiltrados.length / ITENS_POR_PAGINA)
     const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA
@@ -168,6 +213,7 @@ export function Cliente() {
 
     // ── Funções cadastro ──
     function abrirModal() {
+        setFormularioCadastro(estadoInicialCliente)
         setFormularioEndereco(estadoInicialEndereco)
         setVeiculos([criarVeiculoVazio()])
         setPlacaFeedback({ message: '', type: '', veiculoLocalId: null })
@@ -184,6 +230,10 @@ export function Cliente() {
 
     function adicionarVeiculo() {
         setVeiculos(vs => [...vs, criarVeiculoVazio(proximoLocalId(vs))])
+    }
+
+    function atualizarCampoCadastro(campo, valor) {
+        setFormularioCadastro(f => ({ ...f, [campo]: valor }))
     }
 
     function removerVeiculo(index) {
@@ -283,7 +333,7 @@ export function Cliente() {
         setConsultandoPlacaId(veiculoAtual.localId)
         setPlacaFeedback({ message: '', type: '', veiculoLocalId: veiculoAtual.localId })
         try {
-            const data = await apiRequest(`/placas/${placaNormalizada}`)
+            const data = await consultarPlacaBackend(placaNormalizada)
 
             setVeiculos(vs => vs.map(veiculo => {
                 if (veiculo.localId !== veiculoAtual.localId) return veiculo
@@ -310,8 +360,23 @@ export function Cliente() {
         }
     }
 
-    function handleSalvarCadastro() {
-        // TODO: enviar ao back end
+    async function handleSalvarCadastro() {
+        setSalvandoCadastro(true)
+        setCadastroFeedback({ message: 'Salvando cadastro...', type: 'success' })
+
+        try {
+            veiculos.forEach(veiculo => mapVeiculoTelaParaApi(veiculo, 1))
+            const clienteCriado = await criarCliente(formularioCadastro, formularioEndereco)
+            await salvarVeiculosDoCliente(clienteCriado.id, veiculos)
+            await carregarClientes()
+            setFeedbackGeral({ message: 'Cliente e veículo(s) cadastrados com sucesso.', type: 'success' })
+            fecharModal()
+        } catch (error) {
+            console.error('Erro ao salvar cliente:', error)
+            setCadastroFeedback({ message: error.message, type: 'error' })
+        } finally {
+            setSalvandoCadastro(false)
+        }
     }
 
     // ── Funções edição ──
@@ -320,6 +385,7 @@ export function Cliente() {
         setFormularioEdicao({
             nomeCompleto: cliente.nome ?? '',
             cpf: cliente.cpf ?? '',
+            dtNascimento: cliente.dtNascimento ?? '',
             telefone: cliente.telefone ?? '',
             email: cliente.email ?? '',
         })
@@ -338,6 +404,7 @@ export function Cliente() {
                 : [criarVeiculoVazio()]
         )
         setCepFeedbackEdicao({ message: '', type: '' })
+        setEdicaoFeedback({ message: '', type: '' })
         setModalEditarOpen(true)
     }
 
@@ -392,10 +459,24 @@ export function Cliente() {
         }
     }
 
-    function handleSalvarEdicao() {
+    async function handleSalvarEdicao() {
         if (!clienteEditando) return
-        // TODO: enviar ao back end com clienteEditando.id
-        fecharModalEditar()
+
+        setSalvandoEdicao(true)
+        setEdicaoFeedback({ message: 'Salvando alterações...', type: 'success' })
+
+        try {
+            await atualizarCliente(clienteEditando.id, formularioEdicao, formularioEnderecoEdicao)
+            await salvarVeiculosDoCliente(clienteEditando.id, veiculosEdicao, clienteEditando.veiculos ?? [])
+            await carregarClientes()
+            setFeedbackGeral({ message: 'Cliente atualizado com sucesso.', type: 'success' })
+            fecharModalEditar()
+        } catch (error) {
+            console.error('Erro ao atualizar cliente:', error)
+            setEdicaoFeedback({ message: error.message, type: 'error' })
+        } finally {
+            setSalvandoEdicao(false)
+        }
     }
 
     // ── Funções exclusão ──
@@ -409,9 +490,23 @@ export function Cliente() {
         setClienteExcluindo(null)
     }
 
-    function handleExcluirCliente() {
-        // TODO: chamar back end para excluir clienteExcluindo.id
-        fecharModalExcluir()
+    async function handleExcluirCliente() {
+        if (!clienteExcluindo) return
+
+        setExcluindoCliente(true)
+        setFeedbackGeral({ message: 'Excluindo cliente...', type: 'success' })
+
+        try {
+            await excluirCliente(clienteExcluindo.id)
+            await carregarClientes()
+            setFeedbackGeral({ message: 'Cliente excluído com sucesso.', type: 'success' })
+            fecharModalExcluir()
+        } catch (error) {
+            console.error('Erro ao excluir cliente:', error)
+            setFeedbackGeral({ message: error.message, type: 'error' })
+        } finally {
+            setExcluindoCliente(false)
+        }
     }
 
     return (
@@ -445,6 +540,10 @@ export function Cliente() {
                     </button>
                 </div>
 
+                <p className={`feedback ${feedbackGeral.type}`} aria-live="polite">
+                    {carregandoClientes ? 'Carregando clientes...' : feedbackGeral.message}
+                </p>
+
                 <table className="client-table" id="tableClients">
                     <thead>
                         <tr>
@@ -463,8 +562,8 @@ export function Cliente() {
                                 </td>
                             </tr>
                         ) : (
-                            clientesPagina.map((cliente, index) => (
-                                <tr key={index}>
+                            clientesPagina.map((cliente) => (
+                                <tr key={cliente.id}>
                                     <td>{cliente.nome}</td>
                                     <td>{cliente.email}</td>
                                     <td>{cliente.telefone}</td>
@@ -520,23 +619,42 @@ export function Cliente() {
 
                             <div className="input-group full">
                                 <label htmlFor="nome-completo">Nome Completo *</label>
-                                <input id="nome-completo" type="text" placeholder="Ex: João Silva" aria-required="true" />
+                                <input id="nome-completo" type="text" placeholder="Ex: João Silva"
+                                    value={formularioCadastro.nomeCompleto}
+                                    onChange={e => atualizarCampoCadastro('nomeCompleto', e.target.value)}
+                                    aria-required="true" />
                             </div>
 
                             <div className="row">
                                 <div className="input-group">
                                     <label htmlFor="cpf">CPF *</label>
-                                    <input id="cpf" type="text" placeholder="000.000.000-00" aria-required="true" />
+                                    <input id="cpf" type="text" placeholder="000.000.000-00"
+                                        value={formularioCadastro.cpf}
+                                        onChange={e => atualizarCampoCadastro('cpf', e.target.value)}
+                                        aria-required="true" />
                                 </div>
                                 <div className="input-group">
-                                    <label htmlFor="telefone">Telefone</label>
-                                    <input id="telefone" type="text" placeholder="(11) 99999-9999" />
+                                    <label htmlFor="dt-nascimento">Data de nascimento</label>
+                                    <input id="dt-nascimento" type="date"
+                                        value={formularioCadastro.dtNascimento}
+                                        onChange={e => atualizarCampoCadastro('dtNascimento', e.target.value)} />
                                 </div>
                             </div>
 
                             <div className="input-group full">
-                                <label htmlFor="email">E-mail</label>
-                                <input id="email" type="email" placeholder="exemplo@email.com" />
+                                <label htmlFor="telefone">Telefone *</label>
+                                <input id="telefone" type="text" placeholder="(11) 99999-9999"
+                                    value={formularioCadastro.telefone}
+                                    onChange={e => atualizarCampoCadastro('telefone', e.target.value)}
+                                    aria-required="true" />
+                            </div>
+
+                            <div className="input-group full">
+                                <label htmlFor="email">E-mail *</label>
+                                <input id="email" type="email" placeholder="exemplo@email.com"
+                                    value={formularioCadastro.email}
+                                    onChange={e => atualizarCampoCadastro('email', e.target.value)}
+                                    aria-required="true" />
                             </div>
 
                             <div className="row">
@@ -614,7 +732,9 @@ export function Cliente() {
 
                     <div className="modal-footer">
                         <button type="button" className="btn-cancelar" onClick={fecharModal}>Cancelar</button>
-                        <button type="button" className="btn-salvar" onClick={handleSalvarCadastro}>Salvar Cadastro</button>
+                        <button type="button" className="btn-salvar" onClick={handleSalvarCadastro} disabled={salvandoCadastro}>
+                            {salvandoCadastro ? 'Salvando...' : 'Salvar Cadastro'}
+                        </button>
                     </div>
                     <p className={`feedback ${cadastroFeedback.type}`} aria-live="polite">
                         {cadastroFeedback.message}
@@ -651,18 +771,27 @@ export function Cliente() {
                                         aria-required="true" />
                                 </div>
                                 <div className="input-group">
-                                    <label htmlFor="edit-telefone">Telefone</label>
-                                    <input id="edit-telefone" type="text"
-                                        value={formularioEdicao.telefone}
-                                        onChange={e => atualizarCampoEdicao('telefone', e.target.value)} />
+                                    <label htmlFor="edit-dt-nascimento">Data de nascimento</label>
+                                    <input id="edit-dt-nascimento" type="date"
+                                        value={formularioEdicao.dtNascimento}
+                                        onChange={e => atualizarCampoEdicao('dtNascimento', e.target.value)} />
                                 </div>
                             </div>
 
                             <div className="input-group full">
-                                <label htmlFor="edit-email">E-mail</label>
+                                <label htmlFor="edit-telefone">Telefone *</label>
+                                <input id="edit-telefone" type="text"
+                                    value={formularioEdicao.telefone}
+                                    onChange={e => atualizarCampoEdicao('telefone', e.target.value)}
+                                    aria-required="true" />
+                            </div>
+
+                            <div className="input-group full">
+                                <label htmlFor="edit-email">E-mail *</label>
                                 <input id="edit-email" type="email"
                                     value={formularioEdicao.email}
-                                    onChange={e => atualizarCampoEdicao('email', e.target.value)} />
+                                    onChange={e => atualizarCampoEdicao('email', e.target.value)}
+                                    aria-required="true" />
                             </div>
 
                             <div className="row">
@@ -737,8 +866,13 @@ export function Cliente() {
 
                     <div className="modal-footer">
                         <button type="button" className="btn-cancelar" onClick={fecharModalEditar}>Cancelar</button>
-                        <button type="button" className="btn-salvar" onClick={handleSalvarEdicao}>Salvar alterações</button>
+                        <button type="button" className="btn-salvar" onClick={handleSalvarEdicao} disabled={salvandoEdicao}>
+                            {salvandoEdicao ? 'Salvando...' : 'Salvar alterações'}
+                        </button>
                     </div>
+                    <p className={`feedback ${edicaoFeedback.type}`} aria-live="polite">
+                        {edicaoFeedback.message}
+                    </p>
                 </div>
             </div>
 
@@ -756,7 +890,7 @@ export function Cliente() {
                             <div>
                                 <p className="aviso-excluir-titulo">Esta ação não pode ser revertida!</p>
                                 <p className="aviso-excluir-texto">
-                                    Você está prestes a excluir o cliente <strong>{clienteExcluindo?.nome}</strong> e todos os seus veículos vinculados. Tem certeza que deseja continuar?
+                                    Você está prestes a excluir o cliente <strong>{clienteExcluindo?.nome}</strong>. Se houver veículos ou ordens vinculadas, o backend pode impedir a exclusão. Tem certeza que deseja continuar?
                                 </p>
                             </div>
                         </div>
@@ -764,7 +898,9 @@ export function Cliente() {
 
                     <div className="modal-footer">
                         <button type="button" className="btn-cancelar" onClick={fecharModalExcluir}>Cancelar</button>
-                        <button type="button" className="btn-excluir-confirmar" onClick={handleExcluirCliente}>Sim, excluir</button>
+                        <button type="button" className="btn-excluir-confirmar" onClick={handleExcluirCliente} disabled={excluindoCliente}>
+                            {excluindoCliente ? 'Excluindo...' : 'Sim, excluir'}
+                        </button>
                     </div>
                 </div>
             </div>

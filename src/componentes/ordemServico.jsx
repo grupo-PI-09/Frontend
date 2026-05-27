@@ -1,5 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FaSearch, FaPencilAlt, FaTrash, FaPowerOff, FaEye } from 'react-icons/fa'
+import { listarClientesComVeiculos } from '../services/clienteService'
+import { criarVeiculo, listarVeiculos } from '../services/veiculoService'
+import {
+    STATUS_ORDEM_SERVICO,
+    atualizarOrdemServico,
+    criarOrdemServico,
+    excluirOrdemServico,
+    listarOrdensServico,
+    mapOrdemApiParaTela
+} from '../services/ordemServicoService'
 import '../style/ordemServico.css'
 
 const ITENS_POR_PAGINA = 8
@@ -11,9 +21,15 @@ const estadoInicialForm = {
     telefone: '',
     dropdownAberto: false,
     veiculoSelecionado: null,
-    novoVeiculo: '',
+    novoVeiculo: {
+        placa: '',
+        modelo: '',
+        marca: '',
+        ano: '',
+        tipoCombustivel: ''
+    },
     mostrarNovoVeiculo: false,
-    status: '',
+    status: 'aberta',
     descricao: '',
     orcamento: '',
     km: '',
@@ -29,6 +45,20 @@ const estadoInicialEncerramento = {
     observacoes: '',
 }
 
+const estadoInicialEdicao = {
+    status: 'aberta',
+    descricao: '',
+    orcamento: '',
+}
+
+const GARANTIAS = {
+    '1mes': 'Até 1 mês',
+    '3meses': '3 meses',
+    '6meses': '6 meses',
+    '9meses': '9 meses',
+    '1ano': '1 ano'
+}
+
 export function OrdemServico() {
     const [busca, setBusca] = useState('')
     const [paginaAtual, setPaginaAtual] = useState(1)
@@ -41,23 +71,48 @@ export function OrdemServico() {
     const [ordens, setOrdens] = useState([])
     const [modalExcluirOpen, setModalExcluirOpen] = useState(false)
     const [ordemExcluindo, setOrdemExcluindo] = useState(null)
+    const [carregandoDados, setCarregandoDados] = useState(false)
+    const [salvando, setSalvando] = useState(false)
+    const [salvandoEdicao, setSalvandoEdicao] = useState(false)
+    const [excluindo, setExcluindo] = useState(false)
+    const [encerrando, setEncerrando] = useState(false)
+    const [feedback, setFeedback] = useState({ message: '', type: '' })
+
+    useEffect(() => {
+        carregarDados()
+    }, [])
+
+    async function carregarDados() {
+        setCarregandoDados(true)
+
+        try {
+            const [clientesApi, veiculosApi, ordensApi] = await Promise.all([
+                listarClientesComVeiculos(),
+                listarVeiculos(),
+                listarOrdensServico()
+            ])
+
+            setClientes(clientesApi)
+            setOrdens(ordensApi.map(ordem => mapOrdemApiParaTela(ordem, clientesApi, veiculosApi)))
+            setFeedback(feedbackAtual => feedbackAtual.type === 'error' ? { message: '', type: '' } : feedbackAtual)
+        } catch (error) {
+            console.error('Erro ao carregar ordens de serviço:', error)
+            setFeedback({ message: error.message, type: 'error' })
+        } finally {
+            setCarregandoDados(false)
+        }
+    }
 
     const ordensFiltradas = ordens.filter(o =>
-        o.nomeCliente.toLowerCase().includes(busca.toLowerCase())
+        String(o.nomeCliente ?? '').toLowerCase().includes(busca.toLowerCase())
     )
     const totalPaginas = Math.ceil(ordensFiltradas.length / ITENS_POR_PAGINA)
     const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA
     const ordensPagina = ordensFiltradas.slice(inicio, inicio + ITENS_POR_PAGINA)
 
     const clientesFiltrados = clientes.filter(c =>
-        c.nome.toLowerCase().includes(form.buscaCliente.toLowerCase())
+        String(c.nome ?? '').toLowerCase().includes(form.buscaCliente.toLowerCase())
     )
-
-    const estadoInicialEdicao = {
-        status: '',
-        descricao: '',
-        orcamento: '',
-    }
 
     const [modalEditarOpen, setModalEditarOpen] = useState(false)
     const [ordemEditando, setOrdemEditando] = useState(null)
@@ -65,6 +120,7 @@ export function OrdemServico() {
 
     function abrirModal() {
         setForm(estadoInicialForm)
+        setFeedback({ message: '', type: '' })
         setModalOpen(true)
     }
 
@@ -77,6 +133,16 @@ export function OrdemServico() {
         setForm(f => ({ ...f, [field]: value }))
     }
 
+    function setNovoVeiculoField(field, value) {
+        setForm(f => ({
+            ...f,
+            novoVeiculo: {
+                ...f.novoVeiculo,
+                [field]: value
+            }
+        }))
+    }
+
     function setFieldEncerramento(field, value) {
         setFormEncerramento(f => ({ ...f, [field]: value }))
     }
@@ -84,6 +150,7 @@ export function OrdemServico() {
     function abrirModalEncerramento(ordem) {
         setOrdemParaEncerrar(ordem)
         setFormEncerramento(estadoInicialEncerramento)
+        setFeedback({ message: '', type: '' })
         setModalEncerramentoOpen(true)
     }
 
@@ -93,14 +160,40 @@ export function OrdemServico() {
         setFormEncerramento(estadoInicialEncerramento)
     }
 
-    function handleConfirmarEncerramento() {
+    async function handleConfirmarEncerramento() {
         const { garantia, valorFinal, proximaRevisao } = formEncerramento
-        if (!garantia || !valorFinal || !proximaRevisao) {
-            alert('Preencha todos os campos obrigatórios.')
+        if (!ordemParaEncerrar || !garantia || !valorFinal || !proximaRevisao) {
+            setFeedback({ message: 'Preencha todos os campos obrigatórios do encerramento.', type: 'error' })
             return
         }
-        // back end
-        fecharModalEncerramento()
+
+        setEncerrando(true)
+        setFeedback({ message: 'Encerrando ordem de serviço...', type: 'success' })
+
+        try {
+            const observacoesEncerramento = [
+                ordemParaEncerrar.observacoes,
+                `Garantia: ${GARANTIAS[garantia] ?? garantia}`,
+                `Próxima revisão: ${proximaRevisao}`,
+                formEncerramento.observacoes
+            ].filter(Boolean).join('\n')
+
+            await atualizarOrdemServico(ordemParaEncerrar.id, {
+                status: 'finalizada',
+                valorTotal: valorFinal,
+                dataFechamento: new Date().toISOString(),
+                observacoes: observacoesEncerramento
+            }, ordemParaEncerrar)
+
+            await carregarDados()
+            setFeedback({ message: 'Ordem de serviço encerrada com sucesso.', type: 'success' })
+            fecharModalEncerramento()
+        } catch (error) {
+            console.error('Erro ao encerrar ordem de serviço:', error)
+            setFeedback({ message: error.message, type: 'error' })
+        } finally {
+            setEncerrando(false)
+        }
     }
 
     function selecionarCliente(cliente) {
@@ -112,33 +205,82 @@ export function OrdemServico() {
             dropdownAberto: false,
             veiculoSelecionado: null,
             mostrarNovoVeiculo: false,
-            novoVeiculo: '',
+            novoVeiculo: estadoInicialForm.novoVeiculo,
         }))
     }
 
     function selecionarVeiculo(veiculo) {
-        setForm(f => ({ ...f, veiculoSelecionado: veiculo, mostrarNovoVeiculo: false, novoVeiculo: '' }))
+        setForm(f => ({
+            ...f,
+            veiculoSelecionado: veiculo,
+            mostrarNovoVeiculo: false,
+            novoVeiculo: estadoInicialForm.novoVeiculo
+        }))
     }
 
     function toggleNovoVeiculo() {
-        setForm(f => ({ ...f, mostrarNovoVeiculo: !f.mostrarNovoVeiculo, veiculoSelecionado: null, novoVeiculo: '' }))
+        setForm(f => ({
+            ...f,
+            mostrarNovoVeiculo: !f.mostrarNovoVeiculo,
+            veiculoSelecionado: null,
+            novoVeiculo: estadoInicialForm.novoVeiculo
+        }))
     }
 
-    function handleSalvar() {
-        if (form.status === 'finalizado') {
-            abrirModalEncerramento(null)
+    async function handleSalvar() {
+        if (form.tipoCliente === 'avulso') {
+            setFeedback({ message: 'A API atual exige cliente e veículo cadastrados para criar uma ordem de serviço.', type: 'error' })
             return
         }
-        // back end
+
+        if (!form.clienteSelecionado) {
+            setFeedback({ message: 'Selecione um cliente cadastrado.', type: 'error' })
+            return
+        }
+
+        setSalvando(true)
+        setFeedback({ message: 'Cadastrando ordem de serviço...', type: 'success' })
+
+        try {
+            let veiculoId = form.veiculoSelecionado?.id
+
+            if (form.mostrarNovoVeiculo) {
+                const veiculoCriado = await criarVeiculo({
+                    ...form.novoVeiculo,
+                    km: form.km,
+                    combustivel: form.novoVeiculo.tipoCombustivel
+                }, form.clienteSelecionado.id)
+                veiculoId = veiculoCriado.id
+            }
+
+            await criarOrdemServico({
+                clienteId: form.clienteSelecionado.id,
+                veiculoId,
+                status: form.status,
+                problemaRelatado: form.descricao,
+                quilometragem: form.km,
+                valorEstimado: form.orcamento
+            })
+
+            await carregarDados()
+            setFeedback({ message: 'Ordem de serviço cadastrada com sucesso.', type: 'success' })
+            fecharModal()
+        } catch (error) {
+            console.error('Erro ao cadastrar ordem de serviço:', error)
+            setFeedback({ message: error.message, type: 'error' })
+        } finally {
+            setSalvando(false)
+        }
     }
 
     function abrirModalEditar(ordem) {
         setOrdemEditando(ordem)
         setFormEdicao({
-            status: ordem.status,
-            descricao: ordem.descricao,
-            orcamento: ordem.orcamento,
+            status: ordem.statusBackend,
+            descricao: ordem.problemaRelatado ?? ordem.descricao,
+            orcamento: ordem.valorEstimado ?? ordem.orcamento,
         })
+        setFeedback({ message: '', type: '' })
         setModalEditarOpen(true)
     }
 
@@ -148,8 +290,28 @@ export function OrdemServico() {
         setFormEdicao(estadoInicialEdicao)
     }
 
-    function handleSalvarEdicao() {
-        // back-end
+    async function handleSalvarEdicao() {
+        if (!ordemEditando) return
+
+        setSalvandoEdicao(true)
+        setFeedback({ message: 'Salvando alterações da ordem...', type: 'success' })
+
+        try {
+            await atualizarOrdemServico(ordemEditando.id, {
+                status: formEdicao.status,
+                problemaRelatado: formEdicao.descricao,
+                valorEstimado: formEdicao.orcamento
+            }, ordemEditando)
+
+            await carregarDados()
+            setFeedback({ message: 'Ordem de serviço atualizada com sucesso.', type: 'success' })
+            fecharModalEditar()
+        } catch (error) {
+            console.error('Erro ao atualizar ordem de serviço:', error)
+            setFeedback({ message: error.message, type: 'error' })
+        } finally {
+            setSalvandoEdicao(false)
+        }
     }
 
     function setFieldEdicao(field, value) {
@@ -157,18 +319,33 @@ export function OrdemServico() {
     }
 
     function abrirModalExcluir(ordem) {
-    setOrdemExcluindo(ordem)
-    setModalExcluirOpen(true)
-}
+        setOrdemExcluindo(ordem)
+        setFeedback({ message: '', type: '' })
+        setModalExcluirOpen(true)
+    }
 
     function fecharModalExcluir() {
         setModalExcluirOpen(false)
         setOrdemExcluindo(null)
     }
 
-    function handleExcluir() {
-        // back end
-        fecharModalExcluir()
+    async function handleExcluir() {
+        if (!ordemExcluindo) return
+
+        setExcluindo(true)
+        setFeedback({ message: 'Excluindo ordem de serviço...', type: 'success' })
+
+        try {
+            await excluirOrdemServico(ordemExcluindo.id)
+            await carregarDados()
+            setFeedback({ message: 'Ordem de serviço excluída com sucesso.', type: 'success' })
+            fecharModalExcluir()
+        } catch (error) {
+            console.error('Erro ao excluir ordem de serviço:', error)
+            setFeedback({ message: error.message, type: 'error' })
+        } finally {
+            setExcluindo(false)
+        }
     }
 
     return (
@@ -200,6 +377,10 @@ export function OrdemServico() {
                     </button>
                 </div>
 
+                <p className={`feedback ${feedback.type}`} aria-live="polite">
+                    {carregandoDados ? 'Carregando ordens de serviço...' : feedback.message}
+                </p>
+
                 <table className="client-table" id="tableClients" aria-label="Tabela de ordens de serviço">
                     <thead>
                         <tr>
@@ -215,13 +396,13 @@ export function OrdemServico() {
                     <tbody>
                         {ordensPagina.length === 0 ? (
                             <tr>
-                                <td colSpan="6" className="tabela-vazia">
+                                <td colSpan="7" className="tabela-vazia">
                                     Nenhuma ordem de serviço encontrada.
                                 </td>
                             </tr>
                         ) : (
-                            ordensPagina.map((ordem, index) => (
-                                <tr key={index}>
+                            ordensPagina.map((ordem) => (
+                                <tr key={ordem.id}>
                                     <td>{ordem.numero}</td>
                                     <td>{ordem.nomeCliente}</td>
                                     <td>{ordem.telefone}</td>
@@ -231,11 +412,11 @@ export function OrdemServico() {
                                     <td>
                                         <button
                                             className="btn-detalhes"
-                                            aria-label={`${ordem.status === 'Encerrado' ? 'Visualizar' : 'Editar'} OS ${ordem.numero}`}
+                                            aria-label={`${ordem.encerrada ? 'Visualizar' : 'Editar'} OS ${ordem.numero}`}
                                             onClick={() => abrirModalEditar(ordem)}>
-                                            {ordem.status === 'Encerrado' ? <FaEye /> : <FaPencilAlt />}
+                                            {ordem.encerrada ? <FaEye /> : <FaPencilAlt />}
                                         </button>
-                                        {ordem.status !== 'Encerrado' && (
+                                        {!ordem.encerrada && (
                                             <>
                                                 <button
                                                     className="btn-excluir"
@@ -347,10 +528,10 @@ export function OrdemServico() {
                                             <label>Veículo *</label>
                                             <div className="veiculos-lista">
                                                 {form.clienteSelecionado.veiculos.map(v => (
-                                                    <button key={v} type="button"
-                                                        className={`btn-veiculo ${form.veiculoSelecionado === v ? 'ativo' : ''}`}
+                                                    <button key={v.id} type="button"
+                                                        className={`btn-veiculo ${form.veiculoSelecionado?.id === v.id ? 'ativo' : ''}`}
                                                         onClick={() => selecionarVeiculo(v)}>
-                                                        {v}
+                                                        {v.label}
                                                     </button>
                                                 ))}
                                                 <button type="button"
@@ -361,11 +542,60 @@ export function OrdemServico() {
                                             </div>
                                             {form.mostrarNovoVeiculo && (
                                                 <div>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Ex: Toyota Corolla (ABC-1234)"
-                                                        value={form.novoVeiculo}
-                                                        onChange={e => setField('novoVeiculo', e.target.value)} />
+                                                    <div className="row">
+                                                        <div className="input-group">
+                                                            <label htmlFor="os-novo-placa">Placa *</label>
+                                                            <input
+                                                                id="os-novo-placa"
+                                                                type="text"
+                                                                placeholder="ABC1D23"
+                                                                value={form.novoVeiculo.placa}
+                                                                onChange={e => setNovoVeiculoField('placa', e.target.value.toUpperCase())} />
+                                                        </div>
+                                                        <div className="input-group">
+                                                            <label htmlFor="os-novo-ano">Ano *</label>
+                                                            <input
+                                                                id="os-novo-ano"
+                                                                type="number"
+                                                                min="1"
+                                                                placeholder="2022"
+                                                                value={form.novoVeiculo.ano}
+                                                                onChange={e => setNovoVeiculoField('ano', e.target.value)} />
+                                                        </div>
+                                                    </div>
+                                                    <div className="row">
+                                                        <div className="input-group">
+                                                            <label htmlFor="os-novo-modelo">Modelo *</label>
+                                                            <input
+                                                                id="os-novo-modelo"
+                                                                type="text"
+                                                                placeholder="Ex: Corolla"
+                                                                value={form.novoVeiculo.modelo}
+                                                                onChange={e => setNovoVeiculoField('modelo', e.target.value)} />
+                                                        </div>
+                                                        <div className="input-group">
+                                                            <label htmlFor="os-novo-marca">Marca *</label>
+                                                            <input
+                                                                id="os-novo-marca"
+                                                                type="text"
+                                                                placeholder="Ex: Toyota"
+                                                                value={form.novoVeiculo.marca}
+                                                                onChange={e => setNovoVeiculoField('marca', e.target.value)} />
+                                                        </div>
+                                                    </div>
+                                                    <div className="input-group">
+                                                        <label htmlFor="os-novo-combustivel">Combustível *</label>
+                                                        <select
+                                                            id="os-novo-combustivel"
+                                                            value={form.novoVeiculo.tipoCombustivel}
+                                                            onChange={e => setNovoVeiculoField('tipoCombustivel', e.target.value)}>
+                                                            <option value="">Selecione...</option>
+                                                            <option value="flex">Flex</option>
+                                                            <option value="gasolina">Gasolina</option>
+                                                            <option value="etanol">Etanol</option>
+                                                            <option value="diesel">Diesel</option>
+                                                        </select>
+                                                    </div>
                                                     <p className="novo-veiculo-hint">Este veículo será salvo no cadastro do cliente.</p>
                                                 </div>
                                             )}
@@ -390,7 +620,7 @@ export function OrdemServico() {
                             <>
                                 <div className="aviso-avulso">
                                     <span>ℹ️</span>
-                                    <p>Os dados deste cliente <strong>não serão salvos</strong> na plataforma, apenas nesta OS.</p>
+                                    <p>A API atual exige cliente e veículo cadastrados para gravar uma OS. Cadastre o cliente antes de salvar.</p>
                                 </div>
 
                                 <div className="row">
@@ -435,11 +665,9 @@ export function OrdemServico() {
                         <div className="input-group">
                             <label htmlFor="os-status">Status *</label>
                             <select id="os-status" value={form.status} onChange={e => setField('status', e.target.value)} aria-required="true">
-                                <option value="">Selecione...</option>
-                                <option value="em-andamento">Em andamento</option>
-                                <option value="finalizado">Finalizado</option>
-                                <option value="aguardando">Aguardando</option>
-                                <option value="encerrado">Encerrado</option>
+                                {STATUS_ORDEM_SERVICO.map(status => (
+                                    <option key={status.value} value={status.value}>{status.label}</option>
+                                ))}
                             </select>
                         </div>
 
@@ -465,8 +693,13 @@ export function OrdemServico() {
 
                     <div className="modal-footer">
                         <button type="button" className="btn-cancelar" onClick={fecharModal}>Cancelar</button>
-                        <button type="button" className="btn-salvar" onClick={handleSalvar}>Cadastrar OS</button>
+                        <button type="button" className="btn-salvar" onClick={handleSalvar} disabled={salvando}>
+                            {salvando ? 'Cadastrando...' : 'Cadastrar OS'}
+                        </button>
                     </div>
+                    <p className={`feedback ${feedback.type}`} aria-live="polite">
+                        {feedback.message}
+                    </p>
                 </div>
             </div>
 
@@ -480,7 +713,7 @@ export function OrdemServico() {
 
                     <div className="modal-body-os">
 
-                        {ordemEditando?.status === 'Encerrado' ? (
+                        {ordemEditando?.encerrada ? (
                             <>
                                 <div className="aviso-encerrado">
                                     <i className="ti ti-lock"></i>
@@ -601,10 +834,9 @@ export function OrdemServico() {
                                 <div className="input-group">
                                     <label htmlFor="edit-status">Status *</label>
                                     <select id="edit-status" value={formEdicao.status} onChange={e => setFieldEdicao('status', e.target.value)} aria-required="true">
-                                        <option value="">Selecione...</option>
-                                        <option value="em-andamento">Em andamento</option>
-                                        <option value="finalizado">Finalizado</option>
-                                        <option value="aguardando">Aguardando</option>
+                                        {STATUS_ORDEM_SERVICO.map(status => (
+                                            <option key={status.value} value={status.value}>{status.label}</option>
+                                        ))}
                                     </select>
                                 </div>
 
@@ -632,12 +864,17 @@ export function OrdemServico() {
 
                     <div className="modal-footer">
                         <button type="button" className="btn-cancelar" onClick={fecharModalEditar}>
-                            {ordemEditando?.status === 'Encerrado' ? 'Fechar' : 'Cancelar'}
+                            {ordemEditando?.encerrada ? 'Fechar' : 'Cancelar'}
                         </button>
-                        {ordemEditando?.status !== 'Encerrado' && (
-                            <button type="button" className="btn-salvar" onClick={handleSalvarEdicao}>Salvar alterações</button>
+                        {!ordemEditando?.encerrada && (
+                            <button type="button" className="btn-salvar" onClick={handleSalvarEdicao} disabled={salvandoEdicao}>
+                                {salvandoEdicao ? 'Salvando...' : 'Salvar alterações'}
+                            </button>
                         )}
                     </div>
+                    <p className={`feedback ${feedback.type}`} aria-live="polite">
+                        {feedback.message}
+                    </p>
                 </div>
             </div>
 
@@ -664,7 +901,9 @@ export function OrdemServico() {
 
                     <div className="modal-footer">
                         <button type="button" className="btn-cancelar" onClick={fecharModalExcluir}>Cancelar</button>
-                        <button type="button" className="btn-excluir-confirmar" onClick={handleExcluir}>Sim, excluir</button>
+                        <button type="button" className="btn-excluir-confirmar" onClick={handleExcluir} disabled={excluindo}>
+                            {excluindo ? 'Excluindo...' : 'Sim, excluir'}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -724,10 +963,13 @@ export function OrdemServico() {
 
                     <div className="modal-footer">
                         <button type="button" className="btn-cancelar" onClick={fecharModalEncerramento}>Cancelar</button>
-                        <button type="button" className="btn-encerrar-confirmar" onClick={handleConfirmarEncerramento}>
-                            ✓ Confirmar encerramento
+                        <button type="button" className="btn-encerrar-confirmar" onClick={handleConfirmarEncerramento} disabled={encerrando}>
+                            {encerrando ? 'Encerrando...' : '✓ Confirmar encerramento'}
                         </button>
                     </div>
+                    <p className={`feedback ${feedback.type}`} aria-live="polite">
+                        {feedback.message}
+                    </p>
                 </div>
             </div>
 

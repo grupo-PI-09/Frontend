@@ -50,6 +50,21 @@
     background-color: #b3140f;
 }
 
+.feedback {
+    min-height: 22px;
+    margin: 10px 0 18px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.feedback.success {
+    color: #2f855a;
+}
+
+.feedback.error {
+    color: #c53030;
+}
+
 /* ── TABELA ── */
 
 .client-table {

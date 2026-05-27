@@ -4,22 +4,13 @@ const LEGACY_TOKEN_KEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwc
 const LEGACY_USER_KEY = '12345678901234567890123456789012'
 const AUTH_UPDATED_EVENT = 'rrmaxx-auth-updated'
 
-function obterItemStorage(chaveAtual, chaveLegada) {
-    const valorAtual = localStorage.getItem(chaveAtual)
-    if (valorAtual) {
-        return valorAtual
-    }
-
-    const valorLegado = localStorage.getItem(chaveLegada)
-    if (valorLegado) {
-        localStorage.setItem(chaveAtual, valorLegado)
-        return valorLegado
-    }
-
-    return null
+function limparChavesLegadas() {
+    localStorage.removeItem(LEGACY_TOKEN_KEY)
+    localStorage.removeItem(LEGACY_USER_KEY)
 }
 
 export function saveAuth(authResponse) {
+    limparChavesLegadas()
     localStorage.setItem(TOKEN_KEY, authResponse.token)
     localStorage.setItem(USER_KEY, JSON.stringify(authResponse.usuario))
     window.dispatchEvent(new Event(AUTH_UPDATED_EVENT))
@@ -33,18 +24,29 @@ export function saveUsuario(usuario) {
 export function clearAuth() {
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(USER_KEY)
-    localStorage.removeItem(LEGACY_TOKEN_KEY)
-    localStorage.removeItem(LEGACY_USER_KEY)
+    limparChavesLegadas()
     window.dispatchEvent(new Event(AUTH_UPDATED_EVENT))
 }
 
 export function getToken() {
-    return obterItemStorage(TOKEN_KEY, LEGACY_TOKEN_KEY)
+    limparChavesLegadas()
+    return localStorage.getItem(TOKEN_KEY)
 }
 
 export function getUsuario() {
-    const raw = obterItemStorage(USER_KEY, LEGACY_USER_KEY)
-    return raw ? JSON.parse(raw) : null
+    limparChavesLegadas()
+    const raw = localStorage.getItem(USER_KEY)
+
+    if (!raw) {
+        return null
+    }
+
+    try {
+        return JSON.parse(raw)
+    } catch {
+        clearAuth()
+        return null
+    }
 }
 
 export function isAuthenticated() {
