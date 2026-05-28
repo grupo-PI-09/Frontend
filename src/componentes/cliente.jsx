@@ -51,6 +51,55 @@ function proximoLocalId(lista) {
     return lista.reduce((maiorId, veiculo) => Math.max(maiorId, Number(veiculo.localId) || 0), 0) + 1
 }
 
+function apenasDigitos(valor, limite) {
+    const digitos = String(valor ?? '').replace(/\D/g, '')
+    return limite ? digitos.slice(0, limite) : digitos
+}
+
+function formatarCpf(valor) {
+    const digitos = apenasDigitos(valor, 11)
+
+    if (digitos.length <= 3) return digitos
+    if (digitos.length <= 6) return `${digitos.slice(0, 3)}.${digitos.slice(3)}`
+    if (digitos.length <= 9) return `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(6)}`
+
+    return `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(6, 9)}-${digitos.slice(9)}`
+}
+
+function formatarTelefone(valor) {
+    const digitos = apenasDigitos(valor, 11)
+
+    if (digitos.length <= 2) return digitos
+
+    const ddd = digitos.slice(0, 2)
+
+    if (digitos.length <= 6) return `(${ddd}) ${digitos.slice(2)}`
+    if (digitos.length <= 10) return `(${ddd}) ${digitos.slice(2, 6)}-${digitos.slice(6)}`
+
+    return `(${ddd}) ${digitos.slice(2, 7)}-${digitos.slice(7)}`
+}
+
+function formatarCep(valor) {
+    const digitos = apenasDigitos(valor, 8)
+
+    if (digitos.length <= 5) return digitos
+
+    return `${digitos.slice(0, 5)}-${digitos.slice(5)}`
+}
+
+function formatarCampoCliente(campo, valor) {
+    if (campo === 'cpf') return formatarCpf(valor)
+    if (campo === 'telefone') return formatarTelefone(valor)
+
+    return valor
+}
+
+function formatarCampoEndereco(campo, valor) {
+    if (campo === 'cep') return formatarCep(valor)
+
+    return valor
+}
+
 // Fica fora de Cliente para o React preservar os inputs entre re-renderizações.
 function BlocoVeiculos({
     lista,
@@ -233,7 +282,7 @@ export function Cliente() {
     }
 
     function atualizarCampoCadastro(campo, valor) {
-        setFormularioCadastro(f => ({ ...f, [campo]: valor }))
+        setFormularioCadastro(f => ({ ...f, [campo]: formatarCampoCliente(campo, valor) }))
     }
 
     function removerVeiculo(index) {
@@ -280,7 +329,7 @@ export function Cliente() {
     }
 
     function atualizarCampoEndereco(campo, valor) {
-        setFormularioEndereco(f => ({ ...f, [campo]: valor }))
+        setFormularioEndereco(f => ({ ...f, [campo]: formatarCampoEndereco(campo, valor) }))
     }
 
     async function buscarEnderecoPorCep(cepInformado = formularioEndereco.cep) {
@@ -384,13 +433,13 @@ export function Cliente() {
         setClienteEditando(cliente)
         setFormularioEdicao({
             nomeCompleto: cliente.nome ?? '',
-            cpf: cliente.cpf ?? '',
+            cpf: formatarCpf(cliente.cpf),
             dtNascimento: cliente.dtNascimento ?? '',
-            telefone: cliente.telefone ?? '',
+            telefone: formatarTelefone(cliente.telefone),
             email: cliente.email ?? '',
         })
         setFormularioEnderecoEdicao({
-            cep: cliente.cep ?? '',
+            cep: formatarCep(cliente.cep),
             logradouro: cliente.logradouro ?? '',
             bairro: cliente.bairro ?? '',
             cidade: cliente.cidade ?? '',
@@ -414,11 +463,11 @@ export function Cliente() {
     }
 
     function atualizarCampoEdicao(campo, valor) {
-        setFormularioEdicao(f => ({ ...f, [campo]: valor }))
+        setFormularioEdicao(f => ({ ...f, [campo]: formatarCampoCliente(campo, valor) }))
     }
 
     function atualizarCampoEnderecoEdicao(campo, valor) {
-        setFormularioEnderecoEdicao(f => ({ ...f, [campo]: valor }))
+        setFormularioEnderecoEdicao(f => ({ ...f, [campo]: formatarCampoEndereco(campo, valor) }))
     }
 
     function atualizarCampoVeiculoEdicao(index, campo, valor) {

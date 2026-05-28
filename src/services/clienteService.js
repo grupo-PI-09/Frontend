@@ -31,8 +31,9 @@ export function mapClienteApiParaTela(cliente = {}, veiculos = []) {
 export function mapClienteTelaParaApi(dados = {}, endereco = {}) {
     const nome = texto(dados.nome ?? dados.nomeCompleto)
     const cpf = apenasDigitos(dados.cpf)
-    const telefone = texto(dados.telefone)
+    const telefone = apenasDigitos(dados.telefone)
     const email = texto(dados.email).toLowerCase()
+    const cep = apenasDigitos(endereco.cep)
 
     if (!nome) {
         throw new Error('Informe o nome do cliente.')
@@ -57,7 +58,7 @@ export function mapClienteTelaParaApi(dados = {}, endereco = {}) {
         telefone,
         email,
         endereco: vazioParaNull(endereco.endereco),
-        cep: vazioParaNull(endereco.cep),
+        cep: vazioParaNull(cep),
         logradouro: vazioParaNull(endereco.logradouro),
         numero: vazioParaNull(endereco.numero),
         complemento: vazioParaNull(endereco.complemento),
