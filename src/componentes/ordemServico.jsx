@@ -482,7 +482,7 @@ export function OrdemServico() {
                             <button type="button"
                                 className={`btn-tipo-cliente ${form.tipoCliente === 'avulso' ? 'ativo' : ''}`}
                                 onClick={() => setField('tipoCliente', 'avulso')}>
-                                👤 Cliente avulso
+                                👤 Novo Cliente
                             </button>
                         </div>
 
