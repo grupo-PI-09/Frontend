@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { FaSearch, FaPencilAlt, FaTrash, FaPowerOff, FaEye } from 'react-icons/fa'
+import axios from 'axios'
 import '../style/ordemServico.css'
 
 const ITENS_POR_PAGINA = 8
@@ -17,16 +18,32 @@ const estadoInicialForm = {
     descricao: '',
     orcamento: '',
     km: '',
+    // novo cliente
     nomeAvulso: '',
+    cpfAvulso: '',
     telefoneAvulso: '',
+    emailAvulso: '',
+    cepAvulso: '',
+    numeroAvulso: '',
+    logradouroAvulso: '',
+    bairroAvulso: '',
+    cidadeAvulso: '',
+    estadoAvulso: '',
+    complementoAvulso: '',
     veiculoAvulso: '',
+    cepFeedbackAvulso: { message: '', type: '' },
 }
 
 const estadoInicialEncerramento = {
     garantia: '',
     valorFinal: '',
     proximaRevisao: '',
-    observacoes: '',
+}
+
+const estadoInicialEdicao = {
+    status: '',
+    descricao: '',
+    orcamento: '',
 }
 
 export function OrdemServico() {
@@ -41,6 +58,9 @@ export function OrdemServico() {
     const [ordens, setOrdens] = useState([])
     const [modalExcluirOpen, setModalExcluirOpen] = useState(false)
     const [ordemExcluindo, setOrdemExcluindo] = useState(null)
+    const [modalEditarOpen, setModalEditarOpen] = useState(false)
+    const [ordemEditando, setOrdemEditando] = useState(null)
+    const [formEdicao, setFormEdicao] = useState(estadoInicialEdicao)
 
     const ordensFiltradas = ordens.filter(o =>
         o.nomeCliente.toLowerCase().includes(busca.toLowerCase())
@@ -52,16 +72,6 @@ export function OrdemServico() {
     const clientesFiltrados = clientes.filter(c =>
         c.nome.toLowerCase().includes(form.buscaCliente.toLowerCase())
     )
-
-    const estadoInicialEdicao = {
-        status: '',
-        descricao: '',
-        orcamento: '',
-    }
-
-    const [modalEditarOpen, setModalEditarOpen] = useState(false)
-    const [ordemEditando, setOrdemEditando] = useState(null)
-    const [formEdicao, setFormEdicao] = useState(estadoInicialEdicao)
 
     function abrirModal() {
         setForm(estadoInicialForm)
@@ -99,7 +109,7 @@ export function OrdemServico() {
             alert('Preencha todos os campos obrigatórios.')
             return
         }
-        // back end
+        // TODO: back end
         fecharModalEncerramento()
     }
 
@@ -124,12 +134,40 @@ export function OrdemServico() {
         setForm(f => ({ ...f, mostrarNovoVeiculo: !f.mostrarNovoVeiculo, veiculoSelecionado: null, novoVeiculo: '' }))
     }
 
+    async function buscarCepAvulso(cepInformado) {
+        const cepNormalizado = cepInformado.replace(/\D/g, '')
+        if (!cepNormalizado) return
+        if (cepNormalizado.length !== 8) {
+            setField('cepFeedbackAvulso', { message: 'Digite um CEP válido com 8 números.', type: 'error' })
+            return
+        }
+        setField('cepFeedbackAvulso', { message: 'Buscando CEP...', type: 'success' })
+        try {
+            const { data } = await axios.get(`https://viacep.com.br/ws/${cepNormalizado}/json/`)
+            if (data.erro) {
+                setField('cepFeedbackAvulso', { message: 'CEP não encontrado.', type: 'error' })
+                return
+            }
+            setForm(f => ({
+                ...f,
+                logradouroAvulso: data.logradouro || '',
+                bairroAvulso: data.bairro || '',
+                cidadeAvulso: data.localidade || '',
+                estadoAvulso: data.uf || '',
+                complementoAvulso: data.complemento || f.complementoAvulso,
+                cepFeedbackAvulso: { message: 'CEP encontrado.', type: 'success' }
+            }))
+        } catch {
+            setField('cepFeedbackAvulso', { message: 'Erro ao buscar CEP.', type: 'error' })
+        }
+    }
+
     function handleSalvar() {
         if (form.status === 'finalizado') {
             abrirModalEncerramento(null)
             return
         }
-        // back end
+        // TODO: back end
     }
 
     function abrirModalEditar(ordem) {
@@ -149,7 +187,7 @@ export function OrdemServico() {
     }
 
     function handleSalvarEdicao() {
-        // back-end
+        // TODO: back end
     }
 
     function setFieldEdicao(field, value) {
@@ -157,9 +195,9 @@ export function OrdemServico() {
     }
 
     function abrirModalExcluir(ordem) {
-    setOrdemExcluindo(ordem)
-    setModalExcluirOpen(true)
-}
+        setOrdemExcluindo(ordem)
+        setModalExcluirOpen(true)
+    }
 
     function fecharModalExcluir() {
         setModalExcluirOpen(false)
@@ -167,7 +205,7 @@ export function OrdemServico() {
     }
 
     function handleExcluir() {
-        // back end
+        // TODO: back end
         fecharModalExcluir()
     }
 
@@ -215,7 +253,7 @@ export function OrdemServico() {
                     <tbody>
                         {ordensPagina.length === 0 ? (
                             <tr>
-                                <td colSpan="6" className="tabela-vazia">
+                                <td colSpan="7" className="tabela-vazia">
                                     Nenhuma ordem de serviço encontrada.
                                 </td>
                             </tr>
@@ -307,6 +345,7 @@ export function OrdemServico() {
 
                         <p className="modal-dados-os-label">Dados da OS</p>
 
+                        {/* ── CLIENTE CADASTRADO ── */}
                         {form.tipoCliente === 'cadastrado' && (
                             <>
                                 <div className="input-group busca-cliente-wrapper">
@@ -386,21 +425,32 @@ export function OrdemServico() {
                             </>
                         )}
 
+                        {/* ── NOVO CLIENTE ── */}
                         {form.tipoCliente === 'avulso' && (
                             <>
                                 <div className="aviso-avulso">
                                     <span>ℹ️</span>
-                                    <p>Os dados deste cliente <strong>não serão salvos</strong> na plataforma, apenas nesta OS.</p>
+                                    <p>Este cliente será <strong>cadastrado na plataforma</strong> e vinculado a esta OS.</p>
                                 </div>
 
                                 <div className="row">
                                     <div className="input-group">
-                                        <label htmlFor="os-nome-avulso">Nome do cliente *</label>
+                                        <label htmlFor="os-nome-avulso">Nome completo *</label>
                                         <input id="os-nome-avulso" type="text" placeholder="Ex: João Silva"
                                             value={form.nomeAvulso}
                                             onChange={e => setField('nomeAvulso', e.target.value)}
                                             aria-required="true" />
                                     </div>
+                                    <div className="input-group">
+                                        <label htmlFor="os-cpf-avulso">CPF *</label>
+                                        <input id="os-cpf-avulso" type="text" placeholder="000.000.000-00"
+                                            value={form.cpfAvulso}
+                                            onChange={e => setField('cpfAvulso', e.target.value)}
+                                            aria-required="true" />
+                                    </div>
+                                </div>
+
+                                <div className="row">
                                     <div className="input-group">
                                         <label htmlFor="os-telefone-avulso">Telefone *</label>
                                         <input id="os-telefone-avulso" type="text" placeholder="(11) 99999-9999"
@@ -408,7 +458,74 @@ export function OrdemServico() {
                                             onChange={e => setField('telefoneAvulso', e.target.value)}
                                             aria-required="true" />
                                     </div>
+                                    <div className="input-group">
+                                        <label htmlFor="os-email-avulso">E-mail</label>
+                                        <input id="os-email-avulso" type="email" placeholder="exemplo@email.com"
+                                            value={form.emailAvulso}
+                                            onChange={e => setField('emailAvulso', e.target.value)} />
+                                    </div>
                                 </div>
+
+                                <p className="modal-dados-os-label" style={{ marginTop: '8px' }}>Endereço</p>
+
+                                <div className="row">
+                                    <div className="input-group">
+                                        <label htmlFor="os-cep-avulso">CEP</label>
+                                        <input id="os-cep-avulso" type="text" placeholder="00000-000"
+                                            value={form.cepAvulso}
+                                            onChange={e => setField('cepAvulso', e.target.value)}
+                                            onBlur={e => buscarCepAvulso(e.target.value)} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label htmlFor="os-numero-avulso">Número</label>
+                                        <input id="os-numero-avulso" type="text" placeholder="123"
+                                            value={form.numeroAvulso}
+                                            onChange={e => setField('numeroAvulso', e.target.value)} />
+                                    </div>
+                                </div>
+
+                                <p className={`feedback ${form.cepFeedbackAvulso?.type ?? ''}`} aria-live="polite">
+                                    {form.cepFeedbackAvulso?.message ?? ''}
+                                </p>
+
+                                <div className="input-group">
+                                    <label htmlFor="os-logradouro-avulso">Logradouro</label>
+                                    <input id="os-logradouro-avulso" type="text" placeholder="Rua, avenida..."
+                                        value={form.logradouroAvulso}
+                                        onChange={e => setField('logradouroAvulso', e.target.value)} />
+                                </div>
+
+                                <div className="row">
+                                    <div className="input-group">
+                                        <label htmlFor="os-bairro-avulso">Bairro</label>
+                                        <input id="os-bairro-avulso" type="text" placeholder="Bairro"
+                                            value={form.bairroAvulso}
+                                            onChange={e => setField('bairroAvulso', e.target.value)} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label htmlFor="os-cidade-avulso">Cidade</label>
+                                        <input id="os-cidade-avulso" type="text" placeholder="Cidade"
+                                            value={form.cidadeAvulso}
+                                            onChange={e => setField('cidadeAvulso', e.target.value)} />
+                                    </div>
+                                </div>
+
+                                <div className="row">
+                                    <div className="input-group">
+                                        <label htmlFor="os-estado-avulso">Estado</label>
+                                        <input id="os-estado-avulso" type="text" placeholder="UF"
+                                            value={form.estadoAvulso}
+                                            onChange={e => setField('estadoAvulso', e.target.value)} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label htmlFor="os-complemento-avulso">Complemento</label>
+                                        <input id="os-complemento-avulso" type="text" placeholder="Apto, bloco..."
+                                            value={form.complementoAvulso}
+                                            onChange={e => setField('complementoAvulso', e.target.value)} />
+                                    </div>
+                                </div>
+
+                                <p className="modal-dados-os-label" style={{ marginTop: '8px' }}>Veículo</p>
 
                                 <div className="row">
                                     <div className="input-group">
@@ -432,6 +549,7 @@ export function OrdemServico() {
                             </>
                         )}
 
+                        {/* ── CAMPOS COMUNS ── */}
                         <div className="input-group">
                             <label htmlFor="os-status">Status *</label>
                             <select id="os-status" value={form.status} onChange={e => setField('status', e.target.value)} aria-required="true">
@@ -439,7 +557,6 @@ export function OrdemServico() {
                                 <option value="em-andamento">Em andamento</option>
                                 <option value="finalizado">Finalizado</option>
                                 <option value="aguardando">Aguardando</option>
-                                <option value="encerrado">Encerrado</option>
                             </select>
                         </div>
 
@@ -640,7 +757,6 @@ export function OrdemServico() {
                     </div>
                 </div>
             </div>
-
 
             {/* Modal Excluir OS */}
             <div className="modal" style={{ display: modalExcluirOpen ? 'flex' : 'none' }}>
