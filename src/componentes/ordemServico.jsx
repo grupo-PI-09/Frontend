@@ -11,6 +11,7 @@ import {
     mapOrdemApiParaTela
 } from '../services/ordemServicoService'
 import '../style/ordemServico.css'
+import axios from 'axios'
 
 const ITENS_POR_PAGINA = 8
 
@@ -36,6 +37,16 @@ const estadoInicialForm = {
     nomeAvulso: '',
     telefoneAvulso: '',
     veiculoAvulso: '',
+    cpfAvulso: '',
+    emailAvulso: '',
+    cepAvulso: '',
+    numeroAvulso: '',
+    logradouroAvulso: '',
+    bairroAvulso: '',
+    cidadeAvulso: '',
+    estadoAvulso: '',
+    complementoAvulso: '',
+    cepFeedbackAvulso: { message: '', type: '' },
 }
 
 const estadoInicialEncerramento = {
@@ -225,6 +236,34 @@ export function OrdemServico() {
             veiculoSelecionado: null,
             novoVeiculo: estadoInicialForm.novoVeiculo
         }))
+    }
+
+    async function buscarCepAvulso(cepInformado) {
+        const cepNormalizado = cepInformado.replace(/\D/g, '')
+        if (!cepNormalizado) return
+        if (cepNormalizado.length !== 8) {
+            setField('cepFeedbackAvulso', { message: 'Digite um CEP válido com 8 números.', type: 'error' })
+            return
+        }
+        setField('cepFeedbackAvulso', { message: 'Buscando CEP...', type: 'success' })
+        try {
+            const { data } = await axios.get(`https://viacep.com.br/ws/${cepNormalizado}/json/`)
+            if (data.erro) {
+                setField('cepFeedbackAvulso', { message: 'CEP não encontrado.', type: 'error' })
+                return
+            }
+            setForm(f => ({
+                ...f,
+                logradouroAvulso: data.logradouro || '',
+                bairroAvulso: data.bairro || '',
+                cidadeAvulso: data.localidade || '',
+                estadoAvulso: data.uf || '',
+                complementoAvulso: data.complemento || f.complementoAvulso,
+                cepFeedbackAvulso: { message: 'CEP encontrado.', type: 'success' }
+            }))
+        } catch {
+            setField('cepFeedbackAvulso', { message: 'Erro ao buscar CEP.', type: 'error' })
+        }
     }
 
     async function handleSalvar() {
@@ -620,17 +659,27 @@ export function OrdemServico() {
                             <>
                                 <div className="aviso-avulso">
                                     <span>ℹ️</span>
-                                    <p>A API atual exige cliente e veículo cadastrados para gravar uma OS. Cadastre o cliente antes de salvar.</p>
+                                    <p>Este cliente será <strong>cadastrado na plataforma</strong> e vinculado a esta OS.</p>
                                 </div>
 
                                 <div className="row">
                                     <div className="input-group">
-                                        <label htmlFor="os-nome-avulso">Nome do cliente *</label>
+                                        <label htmlFor="os-nome-avulso">Nome completo *</label>
                                         <input id="os-nome-avulso" type="text" placeholder="Ex: João Silva"
                                             value={form.nomeAvulso}
                                             onChange={e => setField('nomeAvulso', e.target.value)}
                                             aria-required="true" />
                                     </div>
+                                    <div className="input-group">
+                                        <label htmlFor="os-cpf-avulso">CPF *</label>
+                                        <input id="os-cpf-avulso" type="text" placeholder="000.000.000-00"
+                                            value={form.cpfAvulso ?? ''}
+                                            onChange={e => setField('cpfAvulso', e.target.value)}
+                                            aria-required="true" />
+                                    </div>
+                                </div>
+
+                                <div className="row">
                                     <div className="input-group">
                                         <label htmlFor="os-telefone-avulso">Telefone *</label>
                                         <input id="os-telefone-avulso" type="text" placeholder="(11) 99999-9999"
@@ -638,7 +687,74 @@ export function OrdemServico() {
                                             onChange={e => setField('telefoneAvulso', e.target.value)}
                                             aria-required="true" />
                                     </div>
+                                    <div className="input-group">
+                                        <label htmlFor="os-email-avulso">E-mail</label>
+                                        <input id="os-email-avulso" type="email" placeholder="exemplo@email.com"
+                                            value={form.emailAvulso ?? ''}
+                                            onChange={e => setField('emailAvulso', e.target.value)} />
+                                    </div>
                                 </div>
+
+                                <p className="modal-dados-os-label" style={{ marginTop: '8px' }}>Endereço</p>
+
+                                <div className="row">
+                                    <div className="input-group">
+                                        <label htmlFor="os-cep-avulso">CEP</label>
+                                        <input id="os-cep-avulso" type="text" placeholder="00000-000"
+                                            value={form.cepAvulso ?? ''}
+                                            onChange={e => setField('cepAvulso', e.target.value)}
+                                            onBlur={e => buscarCepAvulso(e.target.value)} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label htmlFor="os-numero-avulso">Número</label>
+                                        <input id="os-numero-avulso" type="text" placeholder="123"
+                                            value={form.numeroAvulso ?? ''}
+                                            onChange={e => setField('numeroAvulso', e.target.value)} />
+                                    </div>
+                                </div>
+
+                                <p className={`feedback ${form.cepFeedbackAvulso?.type ?? ''}`} aria-live="polite">
+                                    {form.cepFeedbackAvulso?.message ?? ''}
+                                </p>
+
+                                <div className="input-group">
+                                    <label htmlFor="os-logradouro-avulso">Logradouro</label>
+                                    <input id="os-logradouro-avulso" type="text" placeholder="Rua, avenida..."
+                                        value={form.logradouroAvulso ?? ''}
+                                        onChange={e => setField('logradouroAvulso', e.target.value)} />
+                                </div>
+
+                                <div className="row">
+                                    <div className="input-group">
+                                        <label htmlFor="os-bairro-avulso">Bairro</label>
+                                        <input id="os-bairro-avulso" type="text" placeholder="Bairro"
+                                            value={form.bairroAvulso ?? ''}
+                                            onChange={e => setField('bairroAvulso', e.target.value)} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label htmlFor="os-cidade-avulso">Cidade</label>
+                                        <input id="os-cidade-avulso" type="text" placeholder="Cidade"
+                                            value={form.cidadeAvulso ?? ''}
+                                            onChange={e => setField('cidadeAvulso', e.target.value)} />
+                                    </div>
+                                </div>
+
+                                <div className="row">
+                                    <div className="input-group">
+                                        <label htmlFor="os-estado-avulso">Estado</label>
+                                        <input id="os-estado-avulso" type="text" placeholder="UF"
+                                            value={form.estadoAvulso ?? ''}
+                                            onChange={e => setField('estadoAvulso', e.target.value)} />
+                                    </div>
+                                    <div className="input-group">
+                                        <label htmlFor="os-complemento-avulso">Complemento</label>
+                                        <input id="os-complemento-avulso" type="text" placeholder="Apto, bloco..."
+                                            value={form.complementoAvulso ?? ''}
+                                            onChange={e => setField('complementoAvulso', e.target.value)} />
+                                    </div>
+                                </div>
+
+                                <p className="modal-dados-os-label" style={{ marginTop: '8px' }}>Veículo</p>
 
                                 <div className="row">
                                     <div className="input-group">

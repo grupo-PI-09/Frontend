@@ -4,7 +4,6 @@ import '../style/dashboard.css'
 
 export function Dashboard() {
 
-    // 1. Gráfico de linha
     const lineChartOptions = {
         chart: { type: 'area', toolbar: { show: false }, background: 'transparent' },
         stroke: { curve: 'straight', width: 2 },
@@ -19,20 +18,15 @@ export function Dashboard() {
             }
         },
         xaxis: {
-            categories: ['Set', 'Out', 'Nov', 'Dez', 'Jan', 'Fev'],
+            categories: [],
             labels: { style: { fontSize: '18px' } }
         },
-        yaxis: { min: 0, max: 70, labels: { style: { fontSize: '18px' } } },
+        yaxis: { labels: { style: { fontSize: '18px' } } },
         grid: { borderColor: '#c5bdbd', padding: { left: 20 } },
         dataLabels: {
             enabled: true,
-            style: {
-                fontSize: '20px',
-                colors: ['#546E7A']
-            },
-            background: {
-                enabled: false
-            },
+            style: { fontSize: '20px', colors: ['#546E7A'] },
+            background: { enabled: false },
             offsetY: -10,
         },
         markers: {
@@ -46,14 +40,11 @@ export function Dashboard() {
         tooltip: { enabled: true }
     }
 
-    const lineChartSeries = [{ name: 'O.S. finalizadas', data: [48, 62, 55, 38, 50, 52] }]
-
-    // 2. Gráfico de barras
     const barChartOptions = {
         chart: { type: 'bar', toolbar: { show: false }, background: 'transparent', stacked: true },
         colors: ['#546E7A', '#B0BEC5'],
         xaxis: {
-            categories: ['Set', 'Out', 'Nov', 'Dez', 'Jan', 'Fev'],
+            categories: [],
             labels: { style: { fontSize: '18px' } }
         },
         yaxis: { labels: { style: { fontSize: '18px' } } },
@@ -78,17 +69,11 @@ export function Dashboard() {
         grid: { borderColor: '#c5bdbd' }
     }
 
-    const barChartSeries = [
-        { name: 'Realizado', data: [24, 20, 28, 21, 23, 24] },
-        { name: 'Estimativa', data: [6, 15, 14, 14, 18, 28] }
-    ]
-
-    // 3. Gráfico de receita
     const revenueChartOptions = {
         chart: { type: 'bar', toolbar: { show: false }, background: 'transparent' },
         colors: ['#546E7A'],
         xaxis: {
-            categories: ['Set', 'Out', 'Nov', 'Dez', 'Jan', 'Fev'],
+            categories: [],
             labels: { style: { fontSize: '18px' } }
         },
         yaxis: {
@@ -114,15 +99,10 @@ export function Dashboard() {
         grid: { borderColor: '#c5bdbd' }
     }
 
-    const revenueChartSeries = [
-        { name: 'Receita', data: [100000, 200000, 150000, 80000, 70000, 110000] },
-    ]
-
-    // 4. Gráfico de pizza
     const pieChartOptions = {
         chart: { type: 'pie', background: 'transparent' },
         colors: ['#476370', '#7e95a0', '#CFD8DC', '#0d4663'],
-        labels: ['Finalizadas 102', 'Em andamento 48', 'Abertas 25', 'Total 175'],
+        labels: ['Finalizadas', 'Em andamento', 'Abertas', 'Total'],
         legend: {
             position: 'right',
             fontSize: '20px',
@@ -137,27 +117,34 @@ export function Dashboard() {
         tooltip: { enabled: false },
     }
 
-    const pieChartSeries = [102, 48, 25, 0]
+    const daltonico = document.body.classList.contains('daltonico')
 
-    const ultimasOS = [
-        { id: '#1892', cliente: 'João da Silva', veiculo: 'Honda Civic', status: 'Em andamento', data: '10/05/2026' },
-        { id: '#1891', cliente: 'Maria Oliveira', veiculo: 'Toyota Corolla', status: 'Finalizada', data: '10/05/2026' },
-        { id: '#1890', cliente: 'Carlos Santos', veiculo: 'Fiat Strada', status: 'Em andamento', data: '09/05/2026' },
-        { id: '#1889', cliente: 'Ana Paula', veiculo: 'Chevrolet Onix', status: 'Em andamento', data: '09/05/2026' },
-        { id: '#1888', cliente: 'Pedro Lima', veiculo: 'Volkswagen Golf', status: 'Aberta', data: '08/05/2026' },
-    ]
-
-    const statusColor = {
+    const statusColor = daltonico ? {
+        'Em andamento': '#0072B2',
+        'Finalizada': '#009E73',
+        'Aberta': '#E69F00',
+    } : {
         'Em andamento': '#1565C0',
         'Finalizada': '#2e7d32',
         'Aberta': '#546E7A',
     }
 
+    // TODO: substituir pelos dados do backend
     const cards = [
-        { label: 'Faturamento do mês', value: 'R$ 80.000,00', trend: '▲ 12% comparado ao mês anterior', up: true, icon: <FaDollarSign /> },
-        { label: 'Novos clientes no mês', value: '12', trend: '▲ 9% comparado ao mês anterior', up: true, icon: <FaUserPlus /> },
-        { label: 'Notificações enviadas', value: '18', trend: '• Hoje', up: null, icon: <FaBell /> },
+        { label: 'Faturamento do mês', value: '—', trend: '• Aguardando dados', up: null, icon: <FaDollarSign /> },
+        { label: 'Novos clientes no mês', value: '—', trend: '• Aguardando dados', up: null, icon: <FaUserPlus /> },
+        { label: 'Notificações enviadas', value: '—', trend: '• Aguardando dados', up: null, icon: <FaBell /> },
     ]
+
+    // TODO: substituir pelos dados do backend
+    const ultimasOS = []
+    const lineChartSeries = [{ name: 'O.S. finalizadas', data: [] }]
+    const barChartSeries = [
+        { name: 'Realizado', data: [] },
+        { name: 'Estimativa', data: [] }
+    ]
+    const revenueChartSeries = [{ name: 'Receita', data: [] }]
+    const pieChartSeries = [0, 0, 0, 0]
 
     return (
         <main id="main-content">
@@ -181,13 +168,11 @@ export function Dashboard() {
                         ))}
                     </div>
 
-                    {/* Pizza */}
                     <div className="chart-card">
                         <span className="chart-title">Status das Ordens de Serviço</span>
                         <ReactApexChart options={pieChartOptions} series={pieChartSeries} type="pie" height={230} />
                     </div>
 
-                    {/* Tabela últimas OS */}
                     <div className="chart-card">
                         <div className="chart-card-header">
                             <span className="chart-title">Últimas Ordens de Serviço</span>
@@ -204,19 +189,27 @@ export function Dashboard() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {ultimasOS.map((os, i) => (
-                                    <tr key={i}>
-                                        <td>{os.id}</td>
-                                        <td>{os.cliente}</td>
-                                        <td>{os.veiculo}</td>
-                                        <td>
-                                            <span className="os-status-badge" style={{ background: statusColor[os.status] + '22', color: statusColor[os.status] }}>
-                                                {os.status}
-                                            </span>
+                                {ultimasOS.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#888' }}>
+                                            Nenhuma ordem de serviço encontrada.
                                         </td>
-                                        <td>{os.data}</td>
                                     </tr>
-                                ))}
+                                ) : (
+                                    ultimasOS.map((os, i) => (
+                                        <tr key={i}>
+                                            <td>{os.id}</td>
+                                            <td>{os.cliente}</td>
+                                            <td>{os.veiculo}</td>
+                                            <td>
+                                                <span className="os-status-badge" style={{ background: statusColor[os.status] + '22', color: statusColor[os.status] }}>
+                                                    {os.status}
+                                                </span>
+                                            </td>
+                                            <td>{os.data}</td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>

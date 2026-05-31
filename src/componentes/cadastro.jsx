@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect} from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import '../style/style.css';
 import Logo from '../assets/Logo.png';
@@ -12,6 +12,28 @@ export function Cadastro() {
     const [nome, setNome] = useState('');
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
+    const [confirmarSenha, setConfirmarSenha] = useState('');
+
+    const [daltonico, setDaltonico] = useState(
+        () => localStorage.getItem('daltonico') === 'true'
+    )
+
+    function toggleDaltonico() {
+        const novo = !daltonico
+        setDaltonico(novo)
+        localStorage.setItem('daltonico', novo)
+        if (novo) {
+            document.body.classList.add('daltonico')
+        } else {
+            document.body.classList.remove('daltonico')
+        }
+    }
+
+    useEffect(() => {
+        if (localStorage.getItem('daltonico') === 'true') {
+            document.body.classList.add('daltonico')
+        }
+    }, [])
 
     async function executarCadastro() {
 
@@ -41,8 +63,20 @@ export function Cadastro() {
         }
     }
 
+    if (senha !== confirmarSenha) {
+        setFeedback({ message: 'As senhas não coincidem.', type: 'error' });
+        return;
+    }
+
     return (
         <main className="page-shell">
+            <button
+                className={`btn-acessibilidade ${daltonico ? 'ativo' : ''}`}
+                onClick={toggleDaltonico}
+                title="Modo daltônico"
+            >
+                👁
+            </button>
             <button className="back-button" type="button" aria-label="Voltar" onClick={() => navigate('/login')}>
                 <span></span>
             </button>
@@ -84,6 +118,16 @@ export function Cadastro() {
                                 required
                                 value={senha}
                                 onChange={(evento) => setSenha(evento.target.value)}
+                            />
+
+                            <label htmlFor="register-confirm-password">Confirmar senha:</label>
+                            <input
+                                id="register-confirm-password"
+                                name="confirm-password"
+                                type="password"
+                                required
+                                value={confirmarSenha}
+                                onChange={(evento) => setConfirmarSenha(evento.target.value)}
                             />
 
                             <button className="primary-button" type="button" disabled={loading} onClick={() => executarCadastro()}>

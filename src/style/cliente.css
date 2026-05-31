@@ -358,3 +358,53 @@
 .feedback.error {
     color: #c62828;
 }
+
+/* ── MODO DALTONISMO ── */
+body.daltonico .btn-new-client,
+body.daltonico .btn-salvar:hover,
+body.daltonico .btn-add-more:hover {
+    background-color: #0072B2;
+}
+
+body.daltonico .btn-new-client:hover {
+    background-color: #005a8e;
+}
+
+body.daltonico .search-box input:focus {
+    border-color: #0072B2;
+}
+
+body.daltonico .input-group input:focus,
+body.daltonico .input-group select:focus {
+    border-color: #0072B2;
+}
+
+body.daltonico .close-modal:hover {
+    color: #0072B2;
+}
+
+body.daltonico .section-title {
+    color: #0072B2;
+}
+
+body.daltonico .vehicle-badge {
+    background-color: #e0f0ff;
+    color: #0072B2;
+}
+
+body.daltonico .btn-excluir {
+    background: #D55E00;
+    border-color: #D55E00;
+}
+
+body.daltonico .btn-excluir:hover {
+    color: #D55E00;
+    background: #F5F5F5;
+}
+
+body.daltonico .feedback.success { color: #009E73; }
+body.daltonico .feedback.error { color: #D55E00; }
+
+body.daltonico .highlight {
+    background-color: #a0c4e8;
+}

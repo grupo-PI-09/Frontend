@@ -10,7 +10,7 @@ import { Dashboard } from './componentes/dashboard'
 import { ProtectedRoute } from './componentes/ProtectedRoute'
 import { isAuthenticated } from './services/auth'
 
-function Layout() {
+function Layout({ daltonico, setDaltonico }) {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
 
@@ -19,7 +19,14 @@ function Layout() {
 
   return (
     <>
-      {mostrarSidebar && <SideBar collapsed={collapsed} setCollapsed={setCollapsed} />}
+      {mostrarSidebar && (
+        <SideBar
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+          daltonico={daltonico}
+          setDaltonico={setDaltonico}
+        />
+      )}
       <div style={{
         marginLeft: mostrarSidebar ? (collapsed ? '295px' : '80px') : '0',
         transition: 'margin-left 0.3s ease',
@@ -42,9 +49,25 @@ function Layout() {
 }
 
 function App() {
+  const [daltonico, setDaltonico] = useState(
+    () => localStorage.getItem('daltonico') === 'true'
+  )
+
+  function toggleDaltonico(valor) {
+    setDaltonico(valor)
+    localStorage.setItem('daltonico', valor)
+    if (valor) {
+      document.body.classList.add('daltonico')
+    } else {
+      document.body.classList.remove('daltonico')
+    }
+  }
+
+  if (daltonico) document.body.classList.add('daltonico')
+
   return (
     <BrowserRouter>
-      <Layout />
+      <Layout daltonico={daltonico} setDaltonico={toggleDaltonico} />
     </BrowserRouter>
   )
 }
