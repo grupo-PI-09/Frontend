@@ -164,3 +164,38 @@
 .chart-card-header .ver-todas {
     margin-top: 0;
 }
+
+/* ── MODO DALTONISMO ── */
+body.daltonico .card-trend.up { color: #009E73; }
+body.daltonico .card-trend.down { color: #D55E00; }
+
+body.daltonico .ver-todas {
+    color: #0072B2;
+}
+
+body.daltonico .feedback.success { color: #009E73; }
+body.daltonico .feedback.error { color: #D55E00; }
+
+/* ── MODO DALTONISMO - STATUS BADGES ── */
+body.daltonico .os-status-badge[style*="1565C0"] {
+    background: rgba(0, 114, 178, 0.13) !important;
+    color: #0072B2 !important;
+}
+
+body.daltonico .os-status-badge[style*="2e7d32"] {
+    background: rgba(0, 158, 115, 0.13) !important;
+    color: #009E73 !important;
+}
+
+body.daltonico .os-status-badge[style*="546E7A"] {
+    background: rgba(230, 159, 0, 0.13) !important;
+    color: #E69F00 !important;
+}
+
+body.daltonico .card-trend.up {
+    color: #009E73;
+}
+
+body.daltonico .card-trend.down {
+    color: #D55E00;
+}

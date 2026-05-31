@@ -3,9 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import imgDashboard from '../assets/image-dashboard.png'
 import imgCliente from '../assets/image-client.png'
 import imgOrdem from '../assets/image-service-order.png'
+import imgAcessibilidade from '../assets/image-acessibility.png'
 import { clearAuth, getAuthUpdatedEventName, getUsuario } from '../services/auth'
 
-export function SideBar({ collapsed, setCollapsed }) {
+export function SideBar({ collapsed, setCollapsed, daltonico, setDaltonico }) {
     const [optionsOpen, setOptionsOpen] = useState(false)
     const [usuarioAtual, setUsuarioAtual] = useState(getUsuario())
 
@@ -208,6 +209,39 @@ export function SideBar({ collapsed, setCollapsed }) {
                     .sidebar { width: 60px; }
                     .sidebar.collapsed { width: 200px; }
                 }
+
+                .acessibilidade-btn {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    margin-bottom: 10px;
+                    transition: background 0.3s;
+                    border: 2px solid rgba(255,255,255,0.3);
+                    background: transparent;
+                    color: white;
+                    font-size: 20px;
+                }
+                .acessibilidade-btn:hover { background: #0072B2; border-color: white; }
+                .acessibilidade-btn.ativo { background: #0072B2; border-color: white; }
+                .acessibilidade-label {
+                    display: none;
+                    margin-left: 15px;
+                    font-size: 16px;
+                    white-space: nowrap;
+                    color: white;
+                }
+                .sidebar.collapsed .acessibilidade-label { display: inline; }
+                body.daltonico .menu-item:hover,
+                body.daltonico .menu-item.active {
+                    background: #0072B2;
+                }
+                body.daltonico .toggleMenu:hover { background: #0072B2; }
+                body.daltonico .profile:hover { background: #0072B2; }
+                body.daltonico .option-item:hover { color: #0072B2; }
             `}</style>
 
             <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
@@ -230,6 +264,17 @@ export function SideBar({ collapsed, setCollapsed }) {
                         <img src={imgOrdem} className="menu-icon" />
                         <span>Ordem de Serviço</span>
                     </div>
+                    <div
+                    className={`menu-item ${daltonico ? 'active' : ''}`}
+                    onClick={() => setDaltonico(!daltonico)}
+                    title="Modo daltônico"
+                >
+                    <img
+                        src={imgAcessibilidade}
+                        className="menu-icon"
+                    />
+                    <span>Acessibilidade</span>
+                </div>
                 </nav>
 
                 <div className="profile-container">

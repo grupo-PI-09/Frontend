@@ -13,6 +13,27 @@ export function Login() {
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
 
+    const [daltonico, setDaltonico] = useState(
+    () => localStorage.getItem('daltonico') === 'true'
+    )
+
+    function toggleDaltonico() {
+        const novo = !daltonico
+        setDaltonico(novo)
+        localStorage.setItem('daltonico', novo)
+        if (novo) {
+            document.body.classList.add('daltonico')
+        } else {
+            document.body.classList.remove('daltonico')
+        }
+    }
+
+    useEffect(() => {
+        if (localStorage.getItem('daltonico') === 'true') {
+            document.body.classList.add('daltonico')
+        }
+    }, [])
+
     useEffect(() => {
         if (location.state?.mensagemSucesso) {
             setFeedback({ message: location.state.mensagemSucesso, type: 'success' });
@@ -48,6 +69,13 @@ export function Login() {
 
     return (
         <main className="page-shell">
+            <button
+                className={`btn-acessibilidade ${daltonico ? 'ativo' : ''}`}
+                onClick={toggleDaltonico}
+                title="Modo daltônico"
+            >
+                👁
+            </button>
             <button className="back-button" type="button" aria-label="Voltar" onClick={() => navigate(-1)}>
                 <span></span>
             </button>

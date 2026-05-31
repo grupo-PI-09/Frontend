@@ -223,3 +223,72 @@ input:focus {
         width: 100%;
     }
 }
+
+/* ── MODO DALTONISMO ── */
+body.daltonico {
+    --accent: #0072B2;
+    --accent-hover: #005a8e;
+    --danger: #D55E00;
+    --success: #009E73;
+}
+
+body.daltonico .primary-button {
+    background: #0072B2;
+}
+
+body.daltonico .primary-button:hover {
+    background: #005a8e;
+}
+
+body.daltonico input:focus {
+    outline-color: rgba(0, 114, 178, 0.5);
+}
+
+body.daltonico .feedback.error {
+    color: #D55E00;
+}
+
+body.daltonico .feedback.success {
+    color: #009E73;
+}
+
+body.daltonico .profile-field input:focus {
+    border-color: #0072B2;
+    outline: 2px solid rgba(0, 114, 178, 0.12);
+}
+
+body.daltonico .profile-button.primary {
+    background: #0072B2;
+}
+
+body.daltonico .profile-feedback.success { color: #009E73; }
+body.daltonico .profile-feedback.error { color: #D55E00; }
+
+/* ── BOTÃO ACESSIBILIDADE LOGIN/CADASTRO ── */
+.btn-acessibilidade {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s;
+    z-index: 999;
+}
+
+.btn-acessibilidade:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.btn-acessibilidade.ativo {
+    background: #0072B2;
+    border-color: white;
+}

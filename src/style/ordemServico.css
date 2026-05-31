@@ -715,3 +715,93 @@
     cursor: not-allowed;
     border-color: #ccc;
 }
+
+/* ── MODO DALTONISMO ── */
+body.daltonico .btn-new-client {
+    background-color: #0072B2;
+}
+
+body.daltonico .btn-new-client:hover {
+    background-color: #005a8e;
+}
+
+body.daltonico .search-box input:focus {
+    border-color: #0072B2;
+}
+
+body.daltonico .input-group input:focus,
+body.daltonico .input-group textarea:focus {
+    border: 1px solid #0072B2;
+}
+
+body.daltonico .btn-salvar:hover {
+    background-color: #0072B2;
+}
+
+body.daltonico .close-modal:hover {
+    color: #0072B2;
+}
+
+body.daltonico .modal-tipo-cliente-label,
+body.daltonico .modal-dados-os-label,
+body.daltonico .section-title {
+    color: #0072B2;
+}
+
+body.daltonico .btn-tipo-cliente.ativo {
+    border-color: #0072B2;
+    background: #e0f0ff;
+    color: #0072B2;
+}
+
+body.daltonico .btn-veiculo.ativo,
+body.daltonico .btn-novo-veiculo,
+body.daltonico .btn-novo-veiculo.ativo {
+    border-color: #0072B2;
+    color: #0072B2;
+    background: #e0f0ff;
+}
+
+body.daltonico .btn-excluir,
+body.daltonico .btn-excluir-confirmar {
+    background: #D55E00;
+    border-color: #D55E00;
+}
+
+body.daltonico .btn-excluir:hover {
+    color: #D55E00;
+    background: #F5F5F5;
+}
+
+body.daltonico .btn-excluir-confirmar:hover {
+    background-color: #b34e00;
+}
+
+body.daltonico .btn-pagina.ativo {
+    background: #0072B2;
+    border-color: #0072B2;
+}
+
+body.daltonico .aviso-excluir {
+    background: #fff3e0;
+    border-color: #D55E00;
+}
+
+body.daltonico .aviso-excluir-titulo,
+body.daltonico .aviso-encerrado p,
+body.daltonico .aviso-encerrado i {
+    color: #D55E00;
+}
+
+body.daltonico .aviso-encerrado {
+    background: #fff3e0;
+    border-color: #D55E00;
+}
+
+body.daltonico .tag-diferenca.menor {
+    background: #fff3e0;
+    color: #D55E00;
+}
+
+body.daltonico .feedback.success { color: #009E73; }
+body.daltonico .feedback.error { color: #D55E00; }
