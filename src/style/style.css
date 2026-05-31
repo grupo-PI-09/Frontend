@@ -267,28 +267,39 @@ body.daltonico .profile-feedback.error { color: #D55E00; }
 /* ── BOTÃO ACESSIBILIDADE LOGIN/CADASTRO ── */
 .btn-acessibilidade {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.15);
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    color: white;
-    font-size: 22px;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 30px;
+    border: none;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.3s;
-    z-index: 999;
+    padding: 0;
+    z-index: 1000;
+    width: 50px;
+    height: 50px;
+}
+
+.btn-acessibilidade img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+.btn-acessibilidade.ativo img {
+    filter: brightness(0) invert(1);
 }
 
 .btn-acessibilidade:hover {
     background: rgba(255, 255, 255, 0.3);
+    border-radius: 30px;
+    width: 50px;
+    height: 50px;
 }
 
 .btn-acessibilidade.ativo {
     background: #0072B2;
     border-color: white;
+    border-radius: 30px;
+    width: 50px;
+    height: 50px;
 }
