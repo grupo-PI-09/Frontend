@@ -4,6 +4,7 @@ import Logo from '../assets/Logo.png';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { apiRequest } from '../services/api';
 import { saveAuth } from '../services/auth';
+import acessibilidade from '../assets/image-acessibility.png'
 
 export function Login() {
     const navigate = useNavigate();
@@ -69,12 +70,11 @@ export function Login() {
 
     return (
         <main className="page-shell">
-            <button
+             <button
                 className={`btn-acessibilidade ${daltonico ? 'ativo' : ''}`}
                 onClick={toggleDaltonico}
-                title="Modo daltônico"
             >
-                👁
+            <img src={acessibilidade} alt="Acessibilidade" />
             </button>
             <button className="back-button" type="button" aria-label="Voltar" onClick={() => navigate(-1)}>
                 <span></span>

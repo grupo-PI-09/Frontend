@@ -4,6 +4,7 @@ import '../style/style.css';
 import Logo from '../assets/Logo.png';
 import { apiRequest } from '../services/api';
 import { clearAuth } from '../services/auth';
+import acessibilidade from '../assets/image-acessibility.png'
 
 export function Cadastro() {
     const navigate = useNavigate();
@@ -73,9 +74,8 @@ export function Cadastro() {
             <button
                 className={`btn-acessibilidade ${daltonico ? 'ativo' : ''}`}
                 onClick={toggleDaltonico}
-                title="Modo daltônico"
             >
-                👁
+            <img src={acessibilidade} alt="Acessibilidade" />
             </button>
             <button className="back-button" type="button" aria-label="Voltar" onClick={() => navigate('/login')}>
                 <span></span>

@@ -267,7 +267,6 @@ export function SideBar({ collapsed, setCollapsed, daltonico, setDaltonico }) {
                     <div
                     className={`menu-item ${daltonico ? 'active' : ''}`}
                     onClick={() => setDaltonico(!daltonico)}
-                    title="Modo daltônico"
                 >
                     <img
                         src={imgAcessibilidade}
