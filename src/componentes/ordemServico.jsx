@@ -10,6 +10,7 @@ import {
     listarOrdensServico,
     mapOrdemApiParaTela
 } from '../services/ordemServicoService'
+import { apiRequest } from '../services/api'
 import '../style/ordemServico.css'
 import axios from 'axios'
 
@@ -31,12 +32,12 @@ const estadoInicialForm = {
     },
     mostrarNovoVeiculo: false,
     status: 'aberta',
+    tipoServico: '',
     descricao: '',
     orcamento: '',
     km: '',
     nomeAvulso: '',
     telefoneAvulso: '',
-    veiculoAvulso: '',
     cpfAvulso: '',
     emailAvulso: '',
     cepAvulso: '',
@@ -47,6 +48,13 @@ const estadoInicialForm = {
     estadoAvulso: '',
     complementoAvulso: '',
     cepFeedbackAvulso: { message: '', type: '' },
+    veiculoAvulso: {
+        placa: '',
+        modelo: '',
+        marca: '',
+        ano: '',
+        tipoCombustivel: ''
+    },
 }
 
 const estadoInicialEncerramento = {
@@ -88,6 +96,9 @@ export function OrdemServico() {
     const [excluindo, setExcluindo] = useState(false)
     const [encerrando, setEncerrando] = useState(false)
     const [feedback, setFeedback] = useState({ message: '', type: '' })
+    const [modalEditarOpen, setModalEditarOpen] = useState(false)
+    const [ordemEditando, setOrdemEditando] = useState(null)
+    const [formEdicao, setFormEdicao] = useState(estadoInicialEdicao)
 
     useEffect(() => {
         carregarDados()
@@ -95,14 +106,12 @@ export function OrdemServico() {
 
     async function carregarDados() {
         setCarregandoDados(true)
-
         try {
             const [clientesApi, veiculosApi, ordensApi] = await Promise.all([
                 listarClientesComVeiculos(),
                 listarVeiculos(),
                 listarOrdensServico()
             ])
-
             setClientes(clientesApi)
             setOrdens(ordensApi.map(ordem => mapOrdemApiParaTela(ordem, clientesApi, veiculosApi)))
             setFeedback(feedbackAtual => feedbackAtual.type === 'error' ? { message: '', type: '' } : feedbackAtual)
@@ -125,10 +134,6 @@ export function OrdemServico() {
         String(c.nome ?? '').toLowerCase().includes(form.buscaCliente.toLowerCase())
     )
 
-    const [modalEditarOpen, setModalEditarOpen] = useState(false)
-    const [ordemEditando, setOrdemEditando] = useState(null)
-    const [formEdicao, setFormEdicao] = useState(estadoInicialEdicao)
-
     function abrirModal() {
         setForm(estadoInicialForm)
         setFeedback({ message: '', type: '' })
@@ -147,10 +152,14 @@ export function OrdemServico() {
     function setNovoVeiculoField(field, value) {
         setForm(f => ({
             ...f,
-            novoVeiculo: {
-                ...f.novoVeiculo,
-                [field]: value
-            }
+            novoVeiculo: { ...f.novoVeiculo, [field]: value }
+        }))
+    }
+
+    function setVeiculoAvulsoField(field, value) {
+        setForm(f => ({
+            ...f,
+            veiculoAvulso: { ...f.veiculoAvulso, [field]: value }
         }))
     }
 
@@ -177,10 +186,8 @@ export function OrdemServico() {
             setFeedback({ message: 'Preencha todos os campos obrigatórios do encerramento.', type: 'error' })
             return
         }
-
         setEncerrando(true)
         setFeedback({ message: 'Encerrando ordem de serviço...', type: 'success' })
-
         try {
             const observacoesEncerramento = [
                 ordemParaEncerrar.observacoes,
@@ -266,6 +273,31 @@ export function OrdemServico() {
         }
     }
 
+    async function consultarPlacaAvulso() {
+        const placaNormalizada = form.veiculoAvulso.placa.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+        if (placaNormalizada.length < 7) {
+            setFeedback({ message: 'Digite uma placa válida para consultar.', type: 'error' })
+            return
+        }
+        setFeedback({ message: 'Consultando placa...', type: 'success' })
+        try {
+            const data = await apiRequest(`/placas/${placaNormalizada}`)
+            setForm(f => ({
+                ...f,
+                veiculoAvulso: {
+                    ...f.veiculoAvulso,
+                    placa: placaNormalizada,
+                    modelo: data.modelo || '',
+                    marca: data.marca || '',
+                    ano: data.ano || '',
+                }
+            }))
+            setFeedback({ message: 'Placa consultada com sucesso.', type: 'success' })
+        } catch (error) {
+            setFeedback({ message: error.message, type: 'error' })
+        }
+    }
+
     async function handleSalvar() {
         if (form.tipoCliente === 'avulso') {
             setFeedback({ message: 'A API atual exige cliente e veículo cadastrados para criar uma ordem de serviço.', type: 'error' })
@@ -296,6 +328,7 @@ export function OrdemServico() {
                 clienteId: form.clienteSelecionado.id,
                 veiculoId,
                 status: form.status,
+                tipoServico: form.tipoServico,
                 problemaRelatado: form.descricao,
                 quilometragem: form.km,
                 valorEstimado: form.orcamento
@@ -331,17 +364,14 @@ export function OrdemServico() {
 
     async function handleSalvarEdicao() {
         if (!ordemEditando) return
-
         setSalvandoEdicao(true)
         setFeedback({ message: 'Salvando alterações da ordem...', type: 'success' })
-
         try {
             await atualizarOrdemServico(ordemEditando.id, {
                 status: formEdicao.status,
                 problemaRelatado: formEdicao.descricao,
                 valorEstimado: formEdicao.orcamento
             }, ordemEditando)
-
             await carregarDados()
             setFeedback({ message: 'Ordem de serviço atualizada com sucesso.', type: 'success' })
             fecharModalEditar()
@@ -370,10 +400,8 @@ export function OrdemServico() {
 
     async function handleExcluir() {
         if (!ordemExcluindo) return
-
         setExcluindo(true)
         setFeedback({ message: 'Excluindo ordem de serviço...', type: 'success' })
-
         try {
             await excluirOrdemServico(ordemExcluindo.id)
             await carregarDados()
@@ -527,6 +555,7 @@ export function OrdemServico() {
 
                         <p className="modal-dados-os-label">Dados da OS</p>
 
+                        {/* ── CLIENTE CADASTRADO ── */}
                         {form.tipoCliente === 'cadastrado' && (
                             <>
                                 <div className="input-group busca-cliente-wrapper">
@@ -579,8 +608,10 @@ export function OrdemServico() {
                                                     + Novo veículo
                                                 </button>
                                             </div>
+
                                             {form.mostrarNovoVeiculo && (
-                                                <div>
+                                                <div className="vehicle-card" style={{ marginTop: '12px' }}>
+                                                    <span className="vehicle-badge">Novo veículo</span>
                                                     <div className="row">
                                                         <div className="input-group">
                                                             <label htmlFor="os-novo-placa">Placa *</label>
@@ -622,39 +653,57 @@ export function OrdemServico() {
                                                                 onChange={e => setNovoVeiculoField('marca', e.target.value)} />
                                                         </div>
                                                     </div>
-                                                    <div className="input-group">
-                                                        <label htmlFor="os-novo-combustivel">Combustível *</label>
-                                                        <select
-                                                            id="os-novo-combustivel"
-                                                            value={form.novoVeiculo.tipoCombustivel}
-                                                            onChange={e => setNovoVeiculoField('tipoCombustivel', e.target.value)}>
-                                                            <option value="">Selecione...</option>
-                                                            <option value="flex">Flex</option>
-                                                            <option value="gasolina">Gasolina</option>
-                                                            <option value="etanol">Etanol</option>
-                                                            <option value="diesel">Diesel</option>
-                                                        </select>
+                                                    <div className="row">
+                                                        <div className="input-group">
+                                                            <label htmlFor="os-novo-combustivel">Combustível *</label>
+                                                            <select
+                                                                id="os-novo-combustivel"
+                                                                value={form.novoVeiculo.tipoCombustivel}
+                                                                onChange={e => setNovoVeiculoField('tipoCombustivel', e.target.value)}>
+                                                                <option value="">Selecione...</option>
+                                                                <option value="flex">Flex</option>
+                                                                <option value="gasolina">Gasolina</option>
+                                                                <option value="etanol">Etanol</option>
+                                                                <option value="diesel">Diesel</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="input-group">
+                                                            <label htmlFor="os-novo-km">KM atual *</label>
+                                                            <div className="input-sufixo-wrapper">
+                                                                <input
+                                                                    id="os-novo-km"
+                                                                    type="number"
+                                                                    placeholder="Ex: 45000"
+                                                                    min="0"
+                                                                    value={form.km}
+                                                                    onChange={e => setField('km', e.target.value)} />
+                                                                <span className="input-sufixo">km</span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                     <p className="novo-veiculo-hint">Este veículo será salvo no cadastro do cliente.</p>
                                                 </div>
                                             )}
                                         </div>
 
-                                        <div className="input-group">
-                                            <label htmlFor="os-km">Quilometragem atual *</label>
-                                            <div className="input-sufixo-wrapper">
-                                                <input id="os-km" type="number" placeholder="Ex: 45000" min="0"
-                                                    value={form.km}
-                                                    onChange={e => setField('km', e.target.value)}
-                                                    aria-required="true" />
-                                                <span className="input-sufixo">km</span>
+                                        {!form.mostrarNovoVeiculo && (
+                                            <div className="input-group">
+                                                <label htmlFor="os-km">Quilometragem atual *</label>
+                                                <div className="input-sufixo-wrapper">
+                                                    <input id="os-km" type="number" placeholder="Ex: 45000" min="0"
+                                                        value={form.km}
+                                                        onChange={e => setField('km', e.target.value)}
+                                                        aria-required="true" />
+                                                    <span className="input-sufixo">km</span>
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </>
                                 )}
                             </>
                         )}
 
+                        {/* ── NOVO CLIENTE ── */}
                         {form.tipoCliente === 'avulso' && (
                             <>
                                 <div className="aviso-avulso">
@@ -756,35 +805,98 @@ export function OrdemServico() {
 
                                 <p className="modal-dados-os-label" style={{ marginTop: '8px' }}>Veículo</p>
 
-                                <div className="row">
-                                    <div className="input-group">
-                                        <label htmlFor="os-veiculo-avulso">Veículo *</label>
-                                        <input id="os-veiculo-avulso" type="text" placeholder="Toyota Corolla (ABC-1234)"
-                                            value={form.veiculoAvulso}
-                                            onChange={e => setField('veiculoAvulso', e.target.value)}
-                                            aria-required="true" />
-                                    </div>
-                                    <div className="input-group">
-                                        <label htmlFor="os-km-avulso">Quilometragem atual *</label>
-                                        <div className="input-sufixo-wrapper">
-                                            <input id="os-km-avulso" type="number" placeholder="Ex: 45000" min="0"
-                                                value={form.km}
-                                                onChange={e => setField('km', e.target.value)}
+                                <div className="vehicle-card">
+                                    <span className="vehicle-badge">Veículo</span>
+
+                                    <div className="row">
+                                        <div className="input-group">
+                                            <label htmlFor="os-avulso-placa">Placa *</label>
+                                            <input id="os-avulso-placa" type="text" placeholder="ABC1D23"
+                                                value={form.veiculoAvulso.placa}
+                                                onChange={e => setVeiculoAvulsoField('placa', e.target.value.toUpperCase())}
                                                 aria-required="true" />
-                                            <span className="input-sufixo">km</span>
                                         </div>
+                                        <div className="input-group" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                                            <button type="button" className="btn-salvar" onClick={consultarPlacaAvulso}>
+                                                Consultar placa
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="row">
+                                        <div className="input-group">
+                                            <label htmlFor="os-avulso-modelo">Modelo *</label>
+                                            <input id="os-avulso-modelo" type="text" placeholder="Ex: Corolla"
+                                                value={form.veiculoAvulso.modelo}
+                                                onChange={e => setVeiculoAvulsoField('modelo', e.target.value)}
+                                                aria-required="true" />
+                                        </div>
+                                        <div className="input-group">
+                                            <label htmlFor="os-avulso-marca">Marca *</label>
+                                            <input id="os-avulso-marca" type="text" placeholder="Ex: Toyota"
+                                                value={form.veiculoAvulso.marca}
+                                                onChange={e => setVeiculoAvulsoField('marca', e.target.value)}
+                                                aria-required="true" />
+                                        </div>
+                                    </div>
+
+                                    <div className="row">
+                                        <div className="input-group">
+                                            <label htmlFor="os-avulso-ano">Ano *</label>
+                                            <input id="os-avulso-ano" type="number" placeholder="2022" min="1"
+                                                value={form.veiculoAvulso.ano}
+                                                onChange={e => setVeiculoAvulsoField('ano', e.target.value)}
+                                                aria-required="true" />
+                                        </div>
+                                        <div className="input-group">
+                                            <label htmlFor="os-avulso-combustivel">Combustível *</label>
+                                            <select id="os-avulso-combustivel"
+                                                value={form.veiculoAvulso.tipoCombustivel}
+                                                onChange={e => setVeiculoAvulsoField('tipoCombustivel', e.target.value)}>
+                                                <option value="">Selecione...</option>
+                                                <option value="flex">Flex</option>
+                                                <option value="gasolina">Gasolina</option>
+                                                <option value="etanol">Etanol</option>
+                                                <option value="diesel">Diesel</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="row">
+                                        <div className="input-group">
+                                            <label htmlFor="os-avulso-km">KM atual *</label>
+                                            <div className="input-sufixo-wrapper">
+                                                <input id="os-avulso-km" type="number" placeholder="Ex: 45000" min="0"
+                                                    value={form.km}
+                                                    onChange={e => setField('km', e.target.value)}
+                                                    aria-required="true" />
+                                                <span className="input-sufixo">km</span>
+                                            </div>
+                                        </div>
+                                        <div className="input-group"></div>
                                     </div>
                                 </div>
                             </>
                         )}
 
-                        <div className="input-group">
-                            <label htmlFor="os-status">Status *</label>
-                            <select id="os-status" value={form.status} onChange={e => setField('status', e.target.value)} aria-required="true">
-                                {STATUS_ORDEM_SERVICO.map(status => (
-                                    <option key={status.value} value={status.value}>{status.label}</option>
-                                ))}
-                            </select>
+                        {/* ── CAMPOS COMUNS ── */}
+                        <div className="row">
+                            <div className="input-group">
+                                <label htmlFor="os-status">Status *</label>
+                                <select id="os-status" value={form.status} onChange={e => setField('status', e.target.value)} aria-required="true">
+                                    {STATUS_ORDEM_SERVICO.map(status => (
+                                        <option key={status.value} value={status.value}>{status.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="input-group">
+                                <label htmlFor="os-tipo-servico">Tipo de serviço *</label>
+                                <select id="os-tipo-servico" value={form.tipoServico} onChange={e => setField('tipoServico', e.target.value)} aria-required="true">
+                                    <option value="">Selecione...</option>
+                                    <option value="preventiva">Preventiva</option>
+                                    <option value="corretiva">Corretiva</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div className="input-group">
@@ -828,7 +940,6 @@ export function OrdemServico() {
                     </div>
 
                     <div className="modal-body-os">
-
                         {ordemEditando?.encerrada ? (
                             <>
                                 <div className="aviso-encerrado">
@@ -975,7 +1086,6 @@ export function OrdemServico() {
                                 </div>
                             </>
                         )}
-
                     </div>
 
                     <div className="modal-footer">
@@ -993,7 +1103,6 @@ export function OrdemServico() {
                     </p>
                 </div>
             </div>
-
 
             {/* Modal Excluir OS */}
             <div className="modal" style={{ display: modalExcluirOpen ? 'flex' : 'none' }}>
@@ -1033,7 +1142,6 @@ export function OrdemServico() {
                     </div>
 
                     <div className="modal-body-os">
-
                         <div className="aviso-avulso aviso-atencao">
                             <span>⚠️</span>
                             <p>Ao encerrar, o status não poderá ser alterado.</p>
@@ -1074,7 +1182,6 @@ export function OrdemServico() {
                                 aria-required="true" />
                             <p className="novo-veiculo-hint">Informe quando o cliente deve retornar para revisão.</p>
                         </div>
-
                     </div>
 
                     <div className="modal-footer">
