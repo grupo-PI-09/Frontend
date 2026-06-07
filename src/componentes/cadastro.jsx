@@ -43,6 +43,11 @@ export function Cadastro() {
             return;
         }
 
+        if (senha !== confirmarSenha) {
+        setFeedback({ message: 'As senhas não coincidem.', type: 'error' });
+        return;
+        }
+
         setLoading(true);
         setFeedback({ message: 'Processando cadastro...', type: 'success' });
 
@@ -62,11 +67,6 @@ export function Cadastro() {
         } finally {
             setLoading(false);
         }
-    }
-
-    if (senha !== confirmarSenha) {
-        setFeedback({ message: 'As senhas não coincidem.', type: 'error' });
-        return;
     }
 
     return (
