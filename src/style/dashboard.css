@@ -47,6 +47,7 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    min-width: 0;
 }
 
 .card-label {
@@ -63,13 +64,19 @@
 }
 
 .card-trend {
-    font-size: 1.19rem;
+    font-size: 1.05rem;
     font-family: 'Poppins', sans-serif;
+    line-height: 1.2;
 }
 
 .card-trend.up { color: #2e7d32; }
 .card-trend.down { color: #c62828; }
 .card-trend.neutral { color: #777; }
+
+.dashboard-feedback {
+    margin: -8px 0 16px;
+    font-size: 1rem;
+}
 
 /* ── CHART CARDS SUPERIORES ── */
 .chart-card {

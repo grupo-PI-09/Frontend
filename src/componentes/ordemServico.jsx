@@ -78,6 +78,36 @@ const GARANTIAS = {
     '1ano': '1 ano'
 }
 
+function formatarDataMensagem(data) {
+    if (!data) {
+        return ''
+    }
+
+    return new Intl.DateTimeFormat('pt-BR').format(new Date(data))
+}
+
+function montarFeedbackEncerramento(resposta = {}) {
+    const mensagens = ['Ordem finalizada com sucesso.']
+
+    if (resposta.mensagemFinalizacaoEnviada) {
+        mensagens.push('Mensagem de finalização enviada.')
+    }
+
+    if (resposta.lembreteRevisaoAgendado && resposta.dataAgendamentoRevisao) {
+        mensagens.push(`Lembrete de revisão preventiva agendado para ${formatarDataMensagem(resposta.dataAgendamentoRevisao)}.`)
+    }
+
+    if (resposta.lembreteRevisaoEnviadoImediatamente) {
+        mensagens.push('Aviso de revisão preventiva enviado imediatamente.')
+    }
+
+    if (resposta.avisos?.length) {
+        mensagens.push(`Avisos: ${resposta.avisos.join(' ')}`)
+    }
+
+    return mensagens.join(' ')
+}
+
 export function OrdemServico() {
     const [busca, setBusca] = useState('')
     const [paginaAtual, setPaginaAtual] = useState(1)
@@ -182,7 +212,7 @@ export function OrdemServico() {
 
     async function handleConfirmarEncerramento() {
         const { garantia, valorFinal, proximaRevisao } = formEncerramento
-        if (!ordemParaEncerrar || !garantia || !valorFinal || !proximaRevisao) {
+        if (!ordemParaEncerrar || !garantia || !valorFinal) {
             setFeedback({ message: 'Preencha todos os campos obrigatórios do encerramento.', type: 'error' })
             return
         }
@@ -192,19 +222,20 @@ export function OrdemServico() {
             const observacoesEncerramento = [
                 ordemParaEncerrar.observacoes,
                 `Garantia: ${GARANTIAS[garantia] ?? garantia}`,
-                `Próxima revisão: ${proximaRevisao}`,
+                proximaRevisao ? `Próxima revisão: ${proximaRevisao}` : null,
                 formEncerramento.observacoes
             ].filter(Boolean).join('\n')
 
-            await atualizarOrdemServico(ordemParaEncerrar.id, {
+            const resposta = await atualizarOrdemServico(ordemParaEncerrar.id, {
                 status: 'finalizada',
                 valorTotal: valorFinal,
                 dataFechamento: new Date().toISOString(),
+                dataProximaRevisao: proximaRevisao,
                 observacoes: observacoesEncerramento
             }, ordemParaEncerrar)
 
             await carregarDados()
-            setFeedback({ message: 'Ordem de serviço encerrada com sucesso.', type: 'success' })
+            setFeedback({ message: montarFeedbackEncerramento(resposta), type: 'success' })
             fecharModalEncerramento()
         } catch (error) {
             console.error('Erro ao encerrar ordem de serviço:', error)
@@ -1175,12 +1206,12 @@ export function OrdemServico() {
                         </div>
 
                         <div className="input-group">
-                            <label htmlFor="enc-revisao">Próxima revisão recomendada *</label>
+                            <label htmlFor="enc-revisao">Revisão preventiva</label>
                             <input id="enc-revisao" type="date"
                                 value={formEncerramento.proximaRevisao}
                                 onChange={e => setFieldEncerramento('proximaRevisao', e.target.value)}
-                                aria-required="true" />
-                            <p className="novo-veiculo-hint">Informe quando o cliente deve retornar para revisão.</p>
+                                aria-required="false" />
+                            <p className="novo-veiculo-hint">Ao informar a data, o lembrete será agendado para 7 dias antes.</p>
                         </div>
                     </div>
 

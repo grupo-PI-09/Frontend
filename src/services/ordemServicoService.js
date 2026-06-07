@@ -52,12 +52,27 @@ function formatarData(data) {
     return new Intl.DateTimeFormat('pt-BR').format(new Date(data))
 }
 
+function dataRevisaoParaApi(data) {
+    const textoData = texto(data)
+    if (!textoData) {
+        return null
+    }
+
+    if (textoData.includes('T')) {
+        return textoData
+    }
+
+    return `${textoData}T09:00:00`
+}
+
 export function mapOrdemApiParaTela(ordem = {}, clientes = [], veiculos = []) {
     const cliente = clientes.find(item => Number(item.id) === Number(ordem.clienteId))
     const veiculo = veiculos.find(item => Number(item.id) === Number(ordem.veiculoId))
     const statusBackend = ordem.status
     const garantia = ordem.observacoes?.match(/Garantia:\s*(.+)/)?.[1] ?? ''
-    const proximaRevisao = ordem.observacoes?.match(/Próxima revisão:\s*(.+)/)?.[1] ?? ''
+    const proximaRevisao = ordem.dataProximaRevisao
+        ? formatarData(ordem.dataProximaRevisao)
+        : ordem.observacoes?.match(/Próxima revisão:\s*(.+)/)?.[1] ?? ''
 
     return {
         ...ordem,
@@ -75,7 +90,8 @@ export function mapOrdemApiParaTela(ordem = {}, clientes = [], veiculos = []) {
         valorFinal: ordem.valorTotal ?? '',
         km: ordem.quilometragem ?? '',
         garantia,
-        proximaRevisao
+        proximaRevisao,
+        dataProximaRevisao: ordem.dataProximaRevisao ?? null
     }
 }
 
@@ -116,7 +132,8 @@ export function mapOrdemTelaParaApi(dados = {}, base = {}) {
         valorTotal: decimalOuNull(dados.valorTotal ?? base.valorTotal),
         formaPagamento: dados.formaPagamento ?? base.formaPagamento ?? null,
         observacoes: dados.observacoes ?? base.observacoes ?? null,
-        dataFechamento: dados.dataFechamento ?? base.dataFechamento ?? null
+        dataFechamento: dados.dataFechamento ?? base.dataFechamento ?? null,
+        dataProximaRevisao: dataRevisaoParaApi(dados.dataProximaRevisao ?? base.dataProximaRevisao)
     }
 }
 

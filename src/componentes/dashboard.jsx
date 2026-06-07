@@ -1,10 +1,93 @@
+import { useEffect, useMemo, useState } from 'react'
 import ReactApexChart from 'react-apexcharts'
 import { FaDollarSign, FaUserPlus, FaBell } from 'react-icons/fa'
+import { buscarResumoDashboard, formatarMoedaDashboard } from '../services/dashboardService'
 import '../style/dashboard.css'
 
-export function Dashboard() {
+const resumoInicial = {
+    totalClientes: 0,
+    totalVeiculos: 0,
+    totalOrdensServico: 0,
+    totalOrdensAbertasEmAndamento: 0,
+    totalOrdensFinalizadas: 0,
+    ordensFinalizadasMes: 0,
+    novosClientesMes: 0,
+    proximasRevisoes: 0,
+    notificacoesEnviadas: 0,
+    faturamentoTotal: 0,
+    faturamentoMes: 0,
+    ultimasOrdens: [],
+    servicosProximosRevisao: [],
+    finalizacoesUltimosMeses: [],
+    faturamentoUltimosMeses: [],
+    revisoesPreventivasUltimosMeses: []
+}
 
-    const lineChartOptions = {
+function valoresSerie(lista, campo = 'valor') {
+    return (lista ?? []).map(item => Number(item[campo] ?? 0))
+}
+
+function labelsSerie(lista) {
+    return (lista ?? []).map(item => item.label ?? '')
+}
+
+export function Dashboard() {
+    const [resumo, setResumo] = useState(resumoInicial)
+    const [carregando, setCarregando] = useState(true)
+    const [erro, setErro] = useState('')
+
+    useEffect(() => {
+        let ativo = true
+
+        async function carregarResumo(mostrarLoading = true) {
+            if (mostrarLoading) {
+                setCarregando(true)
+            }
+            setErro('')
+
+            try {
+                const dados = await buscarResumoDashboard()
+                if (ativo) {
+                    setResumo({ ...resumoInicial, ...dados })
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dashboard:', error)
+                if (ativo) {
+                    setResumo(resumoInicial)
+                    setErro(error.message)
+                }
+            } finally {
+                if (ativo) {
+                    setCarregando(false)
+                }
+            }
+        }
+
+        carregarResumo()
+
+        function atualizarAoRetornar() {
+            if (document.visibilityState === 'visible') {
+                carregarResumo(false)
+            }
+        }
+
+        window.addEventListener('focus', atualizarAoRetornar)
+        document.addEventListener('visibilitychange', atualizarAoRetornar)
+        const intervalo = window.setInterval(() => carregarResumo(false), 30000)
+
+        return () => {
+            ativo = false
+            window.removeEventListener('focus', atualizarAoRetornar)
+            document.removeEventListener('visibilitychange', atualizarAoRetornar)
+            window.clearInterval(intervalo)
+        }
+    }, [])
+
+    const categoriasFinalizacoes = labelsSerie(resumo.finalizacoesUltimosMeses)
+    const categoriasFaturamento = labelsSerie(resumo.faturamentoUltimosMeses)
+    const categoriasRevisoes = labelsSerie(resumo.revisoesPreventivasUltimosMeses)
+
+    const lineChartOptions = useMemo(() => ({
         chart: { type: 'area', toolbar: { show: false }, background: 'transparent' },
         stroke: { curve: 'straight', width: 2 },
         colors: ['#546E7A'],
@@ -18,7 +101,7 @@ export function Dashboard() {
             }
         },
         xaxis: {
-            categories: [],
+            categories: categoriasFinalizacoes,
             labels: { style: { fontSize: '18px' } }
         },
         yaxis: { labels: { style: { fontSize: '18px' } } },
@@ -38,13 +121,13 @@ export function Dashboard() {
             hover: { size: 16 }
         },
         tooltip: { enabled: true }
-    }
+    }), [categoriasFinalizacoes])
 
-    const barChartOptions = {
+    const barChartOptions = useMemo(() => ({
         chart: { type: 'bar', toolbar: { show: false }, background: 'transparent', stacked: true },
         colors: ['#546E7A', '#B0BEC5'],
         xaxis: {
-            categories: [],
+            categories: categoriasRevisoes,
             labels: { style: { fontSize: '18px' } }
         },
         yaxis: { labels: { style: { fontSize: '18px' } } },
@@ -67,13 +150,13 @@ export function Dashboard() {
             labels: { colors: '#141D24' }
         },
         grid: { borderColor: '#c5bdbd' }
-    }
+    }), [categoriasRevisoes])
 
-    const revenueChartOptions = {
+    const revenueChartOptions = useMemo(() => ({
         chart: { type: 'bar', toolbar: { show: false }, background: 'transparent' },
         colors: ['#546E7A'],
         xaxis: {
-            categories: [],
+            categories: categoriasFaturamento,
             labels: { style: { fontSize: '18px' } }
         },
         yaxis: {
@@ -97,12 +180,67 @@ export function Dashboard() {
         },
         legend: { show: false },
         grid: { borderColor: '#c5bdbd' }
+    }), [categoriasFaturamento])
+
+    const daltonico = document.body.classList.contains('daltonico')
+
+    const statusColor = daltonico ? {
+        'Em andamento': '#0072B2',
+        'Aguardando aprovação': '#0072B2',
+        'Aguardando peça': '#0072B2',
+        'Finalizada': '#009E73',
+        'Aberta': '#E69F00',
+        'Cancelada': '#D55E00',
+    } : {
+        'Em andamento': '#1565C0',
+        'Aguardando aprovação': '#1565C0',
+        'Aguardando peça': '#1565C0',
+        'Finalizada': '#2e7d32',
+        'Aberta': '#546E7A',
+        'Cancelada': '#c62828',
     }
+
+    const cards = [
+        {
+            label: 'Faturamento do mês',
+            value: carregando ? '...' : formatarMoedaDashboard(resumo.faturamentoMes),
+            trend: carregando ? 'Carregando dados' : `Total: ${formatarMoedaDashboard(resumo.faturamentoTotal)}`,
+            up: null,
+            icon: <FaDollarSign />
+        },
+        {
+            label: 'Clientes e veículos',
+            value: carregando ? '...' : `${resumo.totalClientes} clientes`,
+            trend: carregando ? 'Carregando dados' : `${resumo.novosClientesMes} novos no mês • ${resumo.totalVeiculos} veículos`,
+            up: null,
+            icon: <FaUserPlus />
+        },
+        {
+            label: 'Ordens e revisões',
+            value: carregando ? '...' : `${resumo.totalOrdensServico} O.S.`,
+            trend: carregando ? 'Carregando dados' : `${resumo.totalOrdensAbertasEmAndamento} abertas • ${resumo.proximasRevisoes} revisões próximas`,
+            up: null,
+            icon: <FaBell />
+        },
+    ]
+
+    const ultimasOS = resumo.ultimasOrdens ?? []
+    const outrasOrdens = Math.max(
+        resumo.totalOrdensServico - resumo.totalOrdensFinalizadas - resumo.totalOrdensAbertasEmAndamento,
+        0
+    )
+    const possuiOrdens = resumo.totalOrdensServico > 0
+    const pieChartSeries = possuiOrdens
+        ? [resumo.totalOrdensFinalizadas, resumo.totalOrdensAbertasEmAndamento, outrasOrdens]
+        : [1]
+    const pieChartLabels = possuiOrdens
+        ? ['Finalizadas', 'Abertas/em andamento', 'Outras']
+        : ['Sem dados']
 
     const pieChartOptions = {
         chart: { type: 'pie', background: 'transparent' },
-        colors: ['#476370', '#7e95a0', '#CFD8DC', '#0d4663'],
-        labels: ['Finalizadas', 'Em andamento', 'Abertas', 'Total'],
+        colors: possuiOrdens ? ['#476370', '#7e95a0', '#CFD8DC'] : ['#CFD8DC'],
+        labels: pieChartLabels,
         legend: {
             position: 'right',
             fontSize: '20px',
@@ -112,44 +250,28 @@ export function Dashboard() {
         dataLabels: {
             enabled: true,
             style: { fontSize: '20px' },
-            formatter: (val) => `${val.toFixed(0)}%`
+            formatter: (val) => possuiOrdens ? `${val.toFixed(0)}%` : '0%'
         },
         tooltip: { enabled: false },
     }
 
-    const daltonico = document.body.classList.contains('daltonico')
-
-    const statusColor = daltonico ? {
-        'Em andamento': '#0072B2',
-        'Finalizada': '#009E73',
-        'Aberta': '#E69F00',
-    } : {
-        'Em andamento': '#1565C0',
-        'Finalizada': '#2e7d32',
-        'Aberta': '#546E7A',
-    }
-
-    // TODO: substituir pelos dados do backend
-    const cards = [
-        { label: 'Faturamento do mês', value: '—', trend: '• Aguardando dados', up: null, icon: <FaDollarSign /> },
-        { label: 'Novos clientes no mês', value: '—', trend: '• Aguardando dados', up: null, icon: <FaUserPlus /> },
-        { label: 'Notificações enviadas', value: '—', trend: '• Aguardando dados', up: null, icon: <FaBell /> },
-    ]
-
-    // TODO: substituir pelos dados do backend
-    const ultimasOS = []
-    const lineChartSeries = [{ name: 'O.S. finalizadas', data: [] }]
+    const lineChartSeries = [{ name: 'O.S. finalizadas', data: valoresSerie(resumo.finalizacoesUltimosMeses) }]
     const barChartSeries = [
-        { name: 'Realizado', data: [] },
-        { name: 'Estimativa', data: [] }
+        { name: 'Realizado', data: valoresSerie(resumo.revisoesPreventivasUltimosMeses, 'realizadas') },
+        { name: 'Estimativa', data: valoresSerie(resumo.revisoesPreventivasUltimosMeses, 'estimadas') }
     ]
-    const revenueChartSeries = [{ name: 'Receita', data: [] }]
-    const pieChartSeries = [0, 0, 0, 0]
+    const revenueChartSeries = [{ name: 'Receita', data: valoresSerie(resumo.faturamentoUltimosMeses) }]
 
     return (
         <main id="main-content">
             <div className="dashboard-container">
                 <h1>Painel de indicadores da oficina</h1>
+
+                {(carregando || erro) && (
+                    <p className={`feedback dashboard-feedback ${erro ? 'error' : 'success'}`} aria-live="polite">
+                        {erro || 'Carregando indicadores da dashboard...'}
+                    </p>
+                )}
 
                 <div className="dashboard-top">
 
@@ -196,19 +318,22 @@ export function Dashboard() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    ultimasOS.map((os, i) => (
-                                        <tr key={i}>
-                                            <td>{os.id}</td>
-                                            <td>{os.cliente}</td>
-                                            <td>{os.veiculo}</td>
-                                            <td>
-                                                <span className="os-status-badge" style={{ background: statusColor[os.status] + '22', color: statusColor[os.status] }}>
-                                                    {os.status}
-                                                </span>
-                                            </td>
-                                            <td>{os.data}</td>
-                                        </tr>
-                                    ))
+                                    ultimasOS.map((os, i) => {
+                                        const corStatus = statusColor[os.status] ?? '#546E7A'
+                                        return (
+                                            <tr key={os.id ?? i}>
+                                                <td>{os.id}</td>
+                                                <td>{os.cliente}</td>
+                                                <td>{os.veiculo}</td>
+                                                <td>
+                                                    <span className="os-status-badge" style={{ background: corStatus + '22', color: corStatus }}>
+                                                        {os.status}
+                                                    </span>
+                                                </td>
+                                                <td>{os.data}</td>
+                                            </tr>
+                                        )
+                                    })
                                 )}
                             </tbody>
                         </table>
