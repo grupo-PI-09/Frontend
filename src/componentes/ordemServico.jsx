@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { FaSearch, FaPencilAlt, FaTrash, FaPowerOff, FaEye } from 'react-icons/fa'
-import { listarClientesComVeiculos } from '../services/clienteService'
-import { criarVeiculo, listarVeiculos } from '../services/veiculoService'
+import { criarCliente, listarClientesComVeiculos } from '../services/clienteService'
+import { criarVeiculo, listarVeiculos, mapVeiculoTelaParaApi } from '../services/veiculoService'
 import {
     STATUS_ORDEM_SERVICO,
     atualizarOrdemServico,
@@ -330,12 +330,7 @@ export function OrdemServico() {
     }
 
     async function handleSalvar() {
-        if (form.tipoCliente === 'avulso') {
-            setFeedback({ message: 'A API atual exige cliente e veículo cadastrados para criar uma ordem de serviço.', type: 'error' })
-            return
-        }
-
-        if (!form.clienteSelecionado) {
+        if (form.tipoCliente === 'cadastrado' && !form.clienteSelecionado) {
             setFeedback({ message: 'Selecione um cliente cadastrado.', type: 'error' })
             return
         }
@@ -344,9 +339,40 @@ export function OrdemServico() {
         setFeedback({ message: 'Cadastrando ordem de serviço...', type: 'success' })
 
         try {
+            let clienteId = form.clienteSelecionado?.id
             let veiculoId = form.veiculoSelecionado?.id
 
-            if (form.mostrarNovoVeiculo) {
+            if (form.tipoCliente === 'avulso') {
+                const dadosClienteAvulso = {
+                    nomeCompleto: form.nomeAvulso,
+                    cpf: form.cpfAvulso,
+                    telefone: form.telefoneAvulso,
+                    email: form.emailAvulso,
+                }
+                const enderecoClienteAvulso = {
+                    cep: form.cepAvulso,
+                    numero: form.numeroAvulso,
+                    logradouro: form.logradouroAvulso,
+                    bairro: form.bairroAvulso,
+                    cidade: form.cidadeAvulso,
+                    estado: form.estadoAvulso,
+                    complemento: form.complementoAvulso,
+                }
+                const veiculoAvulso = {
+                    ...form.veiculoAvulso,
+                    km: form.km,
+                    combustivel: form.veiculoAvulso.tipoCombustivel
+                }
+
+                mapVeiculoTelaParaApi(veiculoAvulso, 1)
+                const clienteCriado = await criarCliente(dadosClienteAvulso, enderecoClienteAvulso)
+                const veiculoCriado = await criarVeiculo(veiculoAvulso, clienteCriado.id)
+
+                clienteId = clienteCriado.id
+                veiculoId = veiculoCriado.id
+            }
+
+            if (form.tipoCliente === 'cadastrado' && form.mostrarNovoVeiculo) {
                 const veiculoCriado = await criarVeiculo({
                     ...form.novoVeiculo,
                     km: form.km,
@@ -356,7 +382,7 @@ export function OrdemServico() {
             }
 
             await criarOrdemServico({
-                clienteId: form.clienteSelecionado.id,
+                clienteId,
                 veiculoId,
                 status: form.status,
                 tipoServico: form.tipoServico,
@@ -366,7 +392,12 @@ export function OrdemServico() {
             })
 
             await carregarDados()
-            setFeedback({ message: 'Ordem de serviço cadastrada com sucesso.', type: 'success' })
+            setFeedback({
+                message: form.tipoCliente === 'avulso'
+                    ? 'Cliente, veículo e ordem de serviço cadastrados com sucesso.'
+                    : 'Ordem de serviço cadastrada com sucesso.',
+                type: 'success'
+            })
             fecharModal()
         } catch (error) {
             console.error('Erro ao cadastrar ordem de serviço:', error)
@@ -768,10 +799,11 @@ export function OrdemServico() {
                                             aria-required="true" />
                                     </div>
                                     <div className="input-group">
-                                        <label htmlFor="os-email-avulso">E-mail</label>
+                                        <label htmlFor="os-email-avulso">E-mail *</label>
                                         <input id="os-email-avulso" type="email" placeholder="exemplo@email.com"
                                             value={form.emailAvulso ?? ''}
-                                            onChange={e => setField('emailAvulso', e.target.value)} />
+                                            onChange={e => setField('emailAvulso', e.target.value)}
+                                            aria-required="true" />
                                     </div>
                                 </div>
 

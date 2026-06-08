@@ -87,6 +87,37 @@
     overflow: hidden;
 }
 
+.status-chart-card {
+    position: relative;
+}
+
+.status-card-totals {
+    position: absolute;
+    right: 18px;
+    bottom: 14px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-end;
+    font-family: 'Poppins', sans-serif;
+    color: #141D24;
+}
+
+.status-card-totals div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1.05;
+}
+
+.status-total-label {
+    font-size: 0.9rem;
+    color: #546E7A;
+}
+
+.status-card-totals strong {
+    font-size: 1.45rem;
+}
+
 .chart-title {
     font-size: 1.4rem;
     font-weight: 600;

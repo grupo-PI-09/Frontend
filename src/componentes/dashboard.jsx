@@ -225,21 +225,17 @@ export function Dashboard() {
     ]
 
     const ultimasOS = resumo.ultimasOrdens ?? []
-    const outrasOrdens = Math.max(
-        resumo.totalOrdensServico - resumo.totalOrdensFinalizadas - resumo.totalOrdensAbertasEmAndamento,
-        0
-    )
-    const possuiOrdens = resumo.totalOrdensServico > 0
+    const possuiOrdens = resumo.totalOrdensFinalizadas + resumo.totalOrdensAbertasEmAndamento > 0
     const pieChartSeries = possuiOrdens
-        ? [resumo.totalOrdensFinalizadas, resumo.totalOrdensAbertasEmAndamento, outrasOrdens]
+        ? [resumo.totalOrdensFinalizadas, resumo.totalOrdensAbertasEmAndamento]
         : [1]
     const pieChartLabels = possuiOrdens
-        ? ['Finalizadas', 'Abertas/em andamento', 'Outras']
+        ? ['Finalizadas', 'Abertas']
         : ['Sem dados']
 
     const pieChartOptions = {
         chart: { type: 'pie', background: 'transparent' },
-        colors: possuiOrdens ? ['#476370', '#7e95a0', '#CFD8DC'] : ['#CFD8DC'],
+        colors: possuiOrdens ? ['#476370', '#7e95a0'] : ['#CFD8DC'],
         labels: pieChartLabels,
         legend: {
             position: 'right',
@@ -290,9 +286,19 @@ export function Dashboard() {
                         ))}
                     </div>
 
-                    <div className="chart-card">
+                    <div className="chart-card status-chart-card">
                         <span className="chart-title">Status das Ordens de Serviço</span>
                         <ReactApexChart options={pieChartOptions} series={pieChartSeries} type="pie" height={230} />
+                        <div className="status-card-totals" aria-label="Resumo de ordens por status">
+                            <div>
+                                <span className="status-total-label">Finalizadas</span>
+                                <strong>{resumo.totalOrdensFinalizadas}</strong>
+                            </div>
+                            <div>
+                                <span className="status-total-label">Abertas</span>
+                                <strong>{resumo.totalOrdensAbertasEmAndamento}</strong>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="chart-card">

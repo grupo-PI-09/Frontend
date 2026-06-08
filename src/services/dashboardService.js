@@ -46,7 +46,7 @@ export async function buscarResumoDashboard() {
         totalClientes: numero(resumo.totalClientes),
         totalVeiculos: numero(resumo.totalVeiculos),
         totalOrdensServico: numero(resumo.totalOrdensServico),
-        totalOrdensAbertasEmAndamento: numero(resumo.totalOrdensAbertasEmAndamento),
+        totalOrdensAbertasEmAndamento: numero(resumo.totalOrdensAbertasEmAndamento ?? resumo.totalOrdensAbertas),
         totalOrdensFinalizadas: numero(resumo.totalOrdensFinalizadas),
         ordensFinalizadasMes: numero(resumo.ordensFinalizadasMes),
         novosClientesMes: numero(resumo.novosClientesMes),
