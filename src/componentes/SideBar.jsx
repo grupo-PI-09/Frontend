@@ -5,6 +5,7 @@ import imgCliente from '../assets/image-client.png'
 import imgOrdem from '../assets/image-service-order.png'
 import imgAcessibilidade from '../assets/image-acessibility.png'
 import imgNotif from '../assets/image-Notification.png'
+import imgAgenda from '../assets/image-calendar.png'
 import { clearAuth, getAuthUpdatedEventName, getUsuario } from '../services/auth'
 
 export function SideBar({ collapsed, setCollapsed, daltonico, setDaltonico }) {
@@ -264,6 +265,14 @@ export function SideBar({ collapsed, setCollapsed, daltonico, setDaltonico }) {
                     <div className={`menu-item ${currentPage === 'ordemServico' ? 'active' : ''}`} onClick={() => handleMenuClick('ordemServico')}>
                         <img src={imgOrdem} className="menu-icon" />
                         <span>Ordem de Serviço</span>
+                    </div>
+                    <div
+                        className={`menu-item ${currentPage === 'agenda' ? 'active' : ''}`}
+                        onClick={() => handleMenuClick('agenda')}
+                        title="Agenda"
+                    >
+                        <img src={imgAgenda} alt="Agenda" className="menu-icon" />
+                        <span>Agenda</span>
                     </div>
                     <div
                         className={`menu-item ${location.pathname === '/notificacoes' ? 'active' : ''}`} onClick={() => navigate('/notificacoes')}

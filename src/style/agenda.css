@@ -1,0 +1,530 @@
+.agenda-content {
+    padding: 32px;
+    background: #f5f5f5;
+    min-height: 100vh;
+}
+
+.agenda-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* ── HEADER ── */
+.agenda-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.agenda-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.agenda-titulo {
+    font-size: 20px;
+    font-weight: 600;
+    color: #141D24;
+    min-width: 260px;
+    text-align: center;
+    font-family: 'Poppins', sans-serif;
+}
+
+.btn-nav {
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    width: 36px;
+    height: 36px;
+    font-size: 25px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+}
+
+.btn-nav:hover {
+    background: #e6e7e9;
+}
+
+.agenda-acoes {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ── VIEW TOGGLE ── */
+.view-toggle {
+    display: flex;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.view-btn {
+    padding: 6px 16px;
+    font-size: 20px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #555;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.view-btn.ativo {
+    background: #141D24;
+    color: #fff;
+}
+
+/* ── BOTÃO NOVO ── */
+.btn-novo {
+    background: #E31B13;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-novo:hover {
+    background: #c0150e;
+}
+
+/* ── WRAPPER ── */
+.agenda-grade-wrapper {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    overflow: hidden;
+}
+
+/* ── SEMANA ── */
+.dias-header {
+    display: grid;
+    grid-template-columns: 80px repeat(7, 1fr);
+    border-bottom: 1px solid #e0e0e0;
+    background: #fafafa;
+}
+
+.hora-label-header {
+    border-right: 1px solid #e0e0e0;
+}
+
+.dia-col-header {
+    padding: 10px 4px;
+    text-align: center;
+    font-size: 18px;
+    color: #555;
+    border-right: 1px solid #e0e0e0;
+}
+
+.dia-col-header.hoje {
+    color: #E31B13;
+}
+
+.dia-semana-label {
+    display: block;
+    font-size: 18px;
+    margin-bottom: 2px;
+}
+
+.dia-num {
+    font-size: 20px;
+    font-weight: 600;
+    display: block;
+    color: #141D24;
+}
+
+.dia-num--hoje {
+    background: #E31B13;
+    color: #fff;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    font-size: 16px;
+}
+
+.grade {
+    display: flex;
+    flex-direction: column;
+}
+
+.grade-row {
+    display: grid;
+    grid-template-columns: 80px repeat(7, 1fr);
+}
+
+.hora-label {
+    font-size: 18px;
+    color: #aaa;
+    padding: 4px 8px 0;
+    text-align: right;
+    border-right: 1px solid #e0e0e0;
+    height: 90px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+}
+
+.celula {
+    border-right: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e0e0e0;
+    height: 90px;
+    position: relative;
+    padding: 2px;
+}
+
+.evento {
+    border-radius: 4px;
+    padding: 3px 6px;
+    font-size: 18px;
+    cursor: pointer;
+    overflow: hidden;
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    top: 2px;
+    transition: opacity 0.2s;
+}
+
+.evento:hover {
+    opacity: 0.85;
+}
+
+.evento--preventiva {
+    background: #E6F1FB;
+    color: #0C447C;
+    border-left: 3px solid #185FA5;
+}
+
+.evento--corretiva {
+    background: #FAECE7;
+    color: #712B13;
+    border-left: 3px solid #993C1D;
+}
+
+.evento-nome {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.evento-desc {
+    opacity: 0.75;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── MÊS ── */
+.mes-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+}
+
+.mes-dia-header {
+    padding: 8px;
+    text-align: center;
+    font-size: 18px;
+    color: #555;
+    border-right: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e0e0e0;
+    background: #fafafa;
+    font-weight: 600;
+}
+
+.mes-celula {
+    min-height: 90px;
+    border-right: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 4px;
+}
+
+.mes-celula--outro {
+    background: #fafafa;
+}
+
+.mes-celula--hoje {
+    background: #fff8f8;
+}
+
+.mes-dia-num {
+    font-size: 18px;
+    font-weight: 600;
+    color: #aaa;
+    margin-bottom: 4px;
+}
+
+.mes-celula:not(.mes-celula--outro) .mes-dia-num {
+    color: #141D24;
+}
+
+.mes-celula--hoje .mes-dia-num {
+    color: #E31B13;
+}
+
+.mes-evento {
+    font-size: 18px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    margin-bottom: 2px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: opacity 0.2s;
+}
+
+.mes-evento:hover {
+    opacity: 0.8;
+}
+
+.mes-evento--preventiva {
+    background: #E6F1FB;
+    color: #0C447C;
+}
+
+.mes-evento--corretiva {
+    background: #FAECE7;
+    color: #712B13;
+}
+
+/* ── LEGENDA ── */
+.legenda {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.legenda-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 18px;
+    color: #555;
+}
+
+.legenda-cor {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.legenda-cor--preventiva {
+    background: #E6F1FB;
+    border-left: 3px solid #185FA5;
+}
+
+.legenda-cor--corretiva {
+    background: #FAECE7;
+    border-left: 3px solid #993C1D;
+}
+
+/* ── MODAL ── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal-agenda {
+    background: #fff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 840px;
+    overflow: hidden;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.modal-header h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #141D24;
+    margin: 0;
+}
+
+.modal-header button {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: #555;
+}
+
+.modal-body {
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.modal-secao-label {
+    font-size: 18px;
+    font-weight: 600;
+    color: #E31B13;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+.tipo-cliente-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.btn-tipo-cliente {
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 18px;
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid #ccc;
+    color: #555;
+    font-weight: 600;
+    transition: 0.2s;
+}
+
+.btn-tipo-cliente.ativo {
+    border: 2px solid #E31B13;
+    background: #fff5f5;
+    color: #E31B13;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.input-group label {
+    font-size: 18px;
+    color: #555;
+    font-weight: 600;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.btn-cancelar {
+    background: #f5f5f5;
+    color: #141D24;
+    border: 1px solid #ccc;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-cancelar:hover {
+    background: #e6e7e9;
+}
+
+.btn-salvar {
+    background: #141D24;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-salvar:hover {
+    background: #2a3a4a;
+}
+
+.btn-cancelar-agendamento {
+    background: #fff5f5;
+    color: #E31B13;
+    border: 1px solid #E31B13;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-cancelar-agendamento:hover {
+    background: #ffe0e0;
+}
+
+/* ── DALTONISMO ── */
+body.daltonico .btn-novo {
+    background: #0072B2;
+}
+
+body.daltonico .btn-novo:hover {
+    background: #005a8e;
+}
+
+body.daltonico .dia-col-header.hoje {
+    color: #0072B2;
+}
+
+body.daltonico .dia-num--hoje {
+    background: #0072B2;
+}
+
+body.daltonico .mes-celula--hoje {
+    background: #e0f0ff;
+}
+
+body.daltonico .mes-celula--hoje .mes-dia-num {
+    color: #0072B2;
+}
+
+body.daltonico .btn-tipo-cliente.ativo {
+    border-color: #0072B2;
+    background: #e0f0ff;
+    color: #0072B2;
+}
+
+body.daltonico .btn-cancelar-agendamento {
+    background: #fff3e0;
+    color: #D55E00;
+    border-color: #D55E00;
+}
