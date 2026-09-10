@@ -9,13 +9,14 @@ import { Cadastro } from './componentes/cadastro'
 import { Dashboard } from './componentes/dashboard'
 import { ProtectedRoute } from './componentes/ProtectedRoute'
 import { Notificacoes } from './componentes/notificacoes'
+import { Agenda } from './componentes/agenda'
 import { isAuthenticated } from './services/auth'
 
 function Layout({ daltonico, setDaltonico }) {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
 
-  const paginasComSidebar = ['/cliente', '/ordemServico', '/editarPerfil', '/dashboard', '/notificacoes']
+  const paginasComSidebar = ['/cliente', '/ordemServico', '/editarPerfil', '/dashboard', '/notificacoes', '/agenda']
   const mostrarSidebar = paginasComSidebar.includes(location.pathname)
 
   return (
@@ -42,6 +43,7 @@ function Layout({ daltonico, setDaltonico }) {
           <Route path="/cliente" element={<ProtectedRoute><Cliente /></ProtectedRoute>} />
           <Route path="/ordemServico" element={<ProtectedRoute><OrdemServico /></ProtectedRoute>} />
           <Route path="/notificacoes" element={<ProtectedRoute><Notificacoes /></ProtectedRoute>} />
+          <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
           <Route path="/editarPerfil" element={<ProtectedRoute><EditarPerfil /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to={isAuthenticated() ? '/dashboard' : '/login'} replace />} />
         </Routes>
