@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { SideBar } from './componentes/SideBar'
 import { Cliente } from './componentes/cliente'
@@ -12,7 +12,7 @@ import { Notificacoes } from './componentes/notificacoes'
 import { Agenda } from './componentes/agenda'
 import { isAuthenticated } from './services/auth'
 
-function Layout({ daltonico, setDaltonico }) {
+function Layout() {
   const [collapsed, setCollapsed] = useState(false)
   const location = useLocation()
 
@@ -25,8 +25,6 @@ function Layout({ daltonico, setDaltonico }) {
         <SideBar
           collapsed={collapsed}
           setCollapsed={setCollapsed}
-          daltonico={daltonico}
-          setDaltonico={setDaltonico}
         />
       )}
       <div style={{
@@ -53,25 +51,61 @@ function Layout({ daltonico, setDaltonico }) {
 }
 
 function App() {
-  const [daltonico, setDaltonico] = useState(
-    () => localStorage.getItem('daltonico') === 'true'
-  )
+  useEffect(() => {
+    function ajustarTamanhoVLibras() {
+      const tentativa = setInterval(() => {
+        const host = document.getElementById('vlibras-access-wrapper')
+        if (host && host.shadowRoot) {
+          clearInterval(tentativa)
 
-  function toggleDaltonico(valor) {
-    setDaltonico(valor)
-    localStorage.setItem('daltonico', valor)
-    if (valor) {
-      document.body.classList.add('daltonico')
-    } else {
-      document.body.classList.remove('daltonico')
+          if (!host.shadowRoot.getElementById('vlibras-tamanho-custom')) {
+            const style = document.createElement('style')
+            style.id = 'vlibras-tamanho-custom'
+            style.textContent = `
+              #vlibras-button {
+                width: 80px !important;
+                height: 80px !important;
+              }
+              #vlibras-button img {
+                width: 100% !important;
+                height: 100% !important;
+              }
+            `
+            host.shadowRoot.appendChild(style)
+          }
+        }
+      }, 300)
     }
-  }
 
-  if (daltonico) document.body.classList.add('daltonico')
+    function iniciarWidget() {
+      new window.VLibras.Widget('https://vlibras.gov.br/app')
+      ajustarTamanhoVLibras()
+    }
+
+    if (window.VLibras) {
+      iniciarWidget()
+      return
+    }
+
+    if (document.querySelector('script[src*="vlibras-plugin.js"]')) {
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://vlibras.gov.br/app/vlibras-plugin.js'
+    script.onload = iniciarWidget
+    document.body.appendChild(script)
+  }, [])
 
   return (
     <BrowserRouter>
-      <Layout daltonico={daltonico} setDaltonico={toggleDaltonico} />
+      <div vw="true" className="enabled">
+        <div vw-access-button="true" className="active"></div>
+        <div vw-plugin-wrapper="true">
+          <div className="vw-plugin-top-wrapper"></div>
+        </div>
+      </div>
+      <Layout />
     </BrowserRouter>
   )
 }

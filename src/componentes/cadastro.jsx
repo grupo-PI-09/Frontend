@@ -1,10 +1,9 @@
-import { useState, useEffect} from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import '../style/style.css';
 import Logo from '../assets/Logo.png';
 import { apiRequest } from '../services/api';
 import { clearAuth } from '../services/auth';
-import acessibilidade from '../assets/image-acessibility.png'
 
 export function Cadastro() {
     const navigate = useNavigate();
@@ -14,27 +13,6 @@ export function Cadastro() {
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
     const [confirmarSenha, setConfirmarSenha] = useState('');
-
-    const [daltonico, setDaltonico] = useState(
-        () => localStorage.getItem('daltonico') === 'true'
-    )
-
-    function toggleDaltonico() {
-        const novo = !daltonico
-        setDaltonico(novo)
-        localStorage.setItem('daltonico', novo)
-        if (novo) {
-            document.body.classList.add('daltonico')
-        } else {
-            document.body.classList.remove('daltonico')
-        }
-    }
-
-    useEffect(() => {
-        if (localStorage.getItem('daltonico') === 'true') {
-            document.body.classList.add('daltonico')
-        }
-    }, [])
 
     async function executarCadastro() {
 
@@ -71,12 +49,6 @@ export function Cadastro() {
 
     return (
         <main className="page-shell">
-            <button
-                className={`btn-acessibilidade ${daltonico ? 'ativo' : ''}`}
-                onClick={toggleDaltonico}
-            >
-            <img src={acessibilidade} alt="Acessibilidade" />
-            </button>
             <button className="back-button" type="button" aria-label="Voltar" onClick={() => navigate('/login')}>
                 <span></span>
             </button>

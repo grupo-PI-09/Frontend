@@ -9,6 +9,14 @@
     margin: 0 auto;
 }
 
+.agenda-page-titulo {
+    font-size: 28px;
+    font-weight: 700;
+    color: #141D24;
+    font-family: 'Poppins', sans-serif;
+    margin: 0 0 20px;
+}
+
 /* ── HEADER ── */
 .agenda-header {
     display: flex;

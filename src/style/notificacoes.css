@@ -276,35 +276,6 @@
     cursor: not-allowed;
 }
 
-/* ── MODO DALTONISMO ── */
-body.daltonico .btn-reenviar:hover:not(:disabled) {
-    background: #0072B2;
-}
-
-body.daltonico .btn-pagina.ativo {
-    background: #0072B2;
-    border-color: #0072B2;
-}
-
-body.daltonico .notificacao-revisao--vencida {
-    background: #fff3e0;
-    color: #D55E00;
-}
-
-body.daltonico .notificacao-revisao--ok {
-    background: #e0f0e8;
-    color: #009E73;
-}
-
-body.daltonico .notificacao-badge-nao-lida {
-    background: #0072B2;
-}
-
-body.daltonico .notificacao-avatar {
-    background: #e0f0ff;
-    color: #0072B2;
-}
-
 /* ── FILTROS AVANÇADOS ── */
 .notificacoes-filtros-wrapper {
     display: flex;
