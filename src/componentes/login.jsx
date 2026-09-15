@@ -4,7 +4,6 @@ import Logo from '../assets/Logo.png';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { apiRequest } from '../services/api';
 import { saveAuth } from '../services/auth';
-import acessibilidade from '../assets/image-acessibility.png'
 
 export function Login() {
     const navigate = useNavigate();
@@ -13,27 +12,6 @@ export function Login() {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
-
-    const [daltonico, setDaltonico] = useState(
-    () => localStorage.getItem('daltonico') === 'true'
-    )
-
-    function toggleDaltonico() {
-        const novo = !daltonico
-        setDaltonico(novo)
-        localStorage.setItem('daltonico', novo)
-        if (novo) {
-            document.body.classList.add('daltonico')
-        } else {
-            document.body.classList.remove('daltonico')
-        }
-    }
-
-    useEffect(() => {
-        if (localStorage.getItem('daltonico') === 'true') {
-            document.body.classList.add('daltonico')
-        }
-    }, [])
 
     useEffect(() => {
         if (location.state?.mensagemSucesso) {
@@ -70,12 +48,6 @@ export function Login() {
 
     return (
         <main className="page-shell">
-             <button
-                className={`btn-acessibilidade ${daltonico ? 'ativo' : ''}`}
-                onClick={toggleDaltonico}
-            >
-            <img src={acessibilidade} alt="Acessibilidade" />
-            </button>
             <button className="back-button" type="button" aria-label="Voltar" onClick={() => navigate(-1)}>
                 <span></span>
             </button>

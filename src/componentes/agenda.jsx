@@ -171,6 +171,8 @@ export function Agenda() {
         <main id="main-content" className="agenda-content">
             <div className="agenda-container">
 
+                <h1 className="agenda-page-titulo">Agenda</h1>
+
                 <div className="agenda-header">
                     <div className="agenda-nav">
                         <button className="btn-nav" onClick={() => setOffset(o => o - 1)} aria-label="Anterior">‹</button>
