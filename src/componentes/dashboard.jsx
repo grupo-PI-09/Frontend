@@ -23,6 +23,15 @@ const resumoInicial = {
     revisoesPreventivasUltimosMeses: []
 }
 
+const statusColor = {
+    'Em andamento': '#1565C0',
+    'Aguardando aprovação': '#1565C0',
+    'Aguardando peça': '#1565C0',
+    'Finalizada': '#2e7d32',
+    'Aberta': '#546E7A',
+    'Cancelada': '#c62828',
+}
+
 function valoresSerie(lista, campo = 'valor') {
     return (lista ?? []).map(item => Number(item[campo] ?? 0))
 }
@@ -181,24 +190,6 @@ export function Dashboard() {
         legend: { show: false },
         grid: { borderColor: '#c5bdbd' }
     }), [categoriasFaturamento])
-
-    const daltonico = document.body.classList.contains('daltonico')
-
-    const statusColor = daltonico ? {
-        'Em andamento': '#0072B2',
-        'Aguardando aprovação': '#0072B2',
-        'Aguardando peça': '#0072B2',
-        'Finalizada': '#009E73',
-        'Aberta': '#E69F00',
-        'Cancelada': '#D55E00',
-    } : {
-        'Em andamento': '#1565C0',
-        'Aguardando aprovação': '#1565C0',
-        'Aguardando peça': '#1565C0',
-        'Finalizada': '#2e7d32',
-        'Aberta': '#546E7A',
-        'Cancelada': '#c62828',
-    }
 
     const cards = [
         {
