@@ -1,357 +1,151 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import ReactApexChart from 'react-apexcharts'
-import { FaDollarSign, FaUserPlus, FaBell } from 'react-icons/fa'
-import { buscarResumoDashboard, formatarMoedaDashboard } from '../services/dashboardService'
+import { FaDollarSign, FaUsers } from 'react-icons/fa'
 import '../style/dashboard.css'
 
-const resumoInicial = {
-    totalClientes: 0,
-    totalVeiculos: 0,
-    totalOrdensServico: 0,
-    totalOrdensAbertasEmAndamento: 0,
-    totalOrdensFinalizadas: 0,
-    ordensFinalizadasMes: 0,
-    novosClientesMes: 0,
-    proximasRevisoes: 0,
-    notificacoesEnviadas: 0,
-    faturamentoTotal: 0,
-    faturamentoMes: 0,
-    ultimasOrdens: [],
-    servicosProximosRevisao: [],
-    finalizacoesUltimosMeses: [],
-    faturamentoUltimosMeses: [],
-    revisoesPreventivasUltimosMeses: []
+const MESES_ATE_AGORA = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set']
+
+const receitaPorPeriodo = {
+    mensal: { valor: 58000, comparacao: '+38% vs set/2025' },
+    semestral: { valor: 310000, comparacao: '+22% vs 1º sem. 2025' },
+    anual: { valor: 512000, comparacao: '+19% vs 2025 até agora' }
 }
 
-const statusColor = {
-    'Em andamento': '#1565C0',
-    'Aguardando aprovação': '#1565C0',
-    'Aguardando peça': '#1565C0',
-    'Finalizada': '#2e7d32',
-    'Aberta': '#546E7A',
-    'Cancelada': '#c62828',
-}
-
-function valoresSerie(lista, campo = 'valor') {
-    return (lista ?? []).map(item => Number(item[campo] ?? 0))
-}
-
-function labelsSerie(lista) {
-    return (lista ?? []).map(item => item.label ?? '')
+function formatarMoeda(valor) {
+    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 }
 
 export function Dashboard() {
-    const [resumo, setResumo] = useState(resumoInicial)
-    const [carregando, setCarregando] = useState(true)
-    const [erro, setErro] = useState('')
+    const [periodoReceita, setPeriodoReceita] = useState('mensal')
+    const receitaAtual = receitaPorPeriodo[periodoReceita]
 
-    useEffect(() => {
-        let ativo = true
-
-        async function carregarResumo(mostrarLoading = true) {
-            if (mostrarLoading) {
-                setCarregando(true)
-            }
-            setErro('')
-
-            try {
-                const dados = await buscarResumoDashboard()
-                if (ativo) {
-                    setResumo({ ...resumoInicial, ...dados })
-                }
-            } catch (error) {
-                console.error('Erro ao carregar dashboard:', error)
-                if (ativo) {
-                    setResumo(resumoInicial)
-                    setErro(error.message)
-                }
-            } finally {
-                if (ativo) {
-                    setCarregando(false)
-                }
-            }
-        }
-
-        carregarResumo()
-
-        function atualizarAoRetornar() {
-            if (document.visibilityState === 'visible') {
-                carregarResumo(false)
-            }
-        }
-
-        window.addEventListener('focus', atualizarAoRetornar)
-        document.addEventListener('visibilitychange', atualizarAoRetornar)
-        const intervalo = window.setInterval(() => carregarResumo(false), 30000)
-
-        return () => {
-            ativo = false
-            window.removeEventListener('focus', atualizarAoRetornar)
-            document.removeEventListener('visibilitychange', atualizarAoRetornar)
-            window.clearInterval(intervalo)
-        }
-    }, [])
-
-    const categoriasFinalizacoes = labelsSerie(resumo.finalizacoesUltimosMeses)
-    const categoriasFaturamento = labelsSerie(resumo.faturamentoUltimosMeses)
-    const categoriasRevisoes = labelsSerie(resumo.revisoesPreventivasUltimosMeses)
-
-    const lineChartOptions = useMemo(() => ({
-        chart: { type: 'area', toolbar: { show: false }, background: 'transparent' },
-        stroke: { curve: 'straight', width: 2 },
-        colors: ['#546E7A'],
-        fill: {
-            type: 'gradient',
-            gradient: {
-                shadeIntensity: 1,
-                opacityFrom: 0.8,
-                opacityTo: 0.05,
-                stops: [0, 100]
-            }
-        },
+    const faturamentoMensalOptions = useMemo(() => ({
+        chart: { type: 'bar', toolbar: { show: false }, background: 'transparent' },
+        colors: ['#141D24', '#2e7d32'],
+        plotOptions: { bar: { columnWidth: '45%', borderRadius: 6, distributed: true } },
+        legend: { show: false },
         xaxis: {
-            categories: categoriasFinalizacoes,
-            labels: { style: { fontSize: '18px' } }
+            categories: ['Set 2025', 'Set 2026'],
+            labels: { style: { fontSize: '20px' } }
         },
-        yaxis: { labels: { style: { fontSize: '18px' } } },
-        grid: { borderColor: '#c5bdbd', padding: { left: 20 } },
+        yaxis: {
+            labels: {
+                formatter: (val) => `R$${(val / 1000).toFixed(0)}k`,
+                style: { fontSize: '20px' }
+            }
+        },
         dataLabels: {
             enabled: true,
-            style: { fontSize: '20px', colors: ['#546E7A'] },
-            background: { enabled: false },
-            offsetY: -10,
+            formatter: (val) => formatarMoeda(val),
+            style: { colors: ['#fff'], fontSize: '20px' }
         },
-        markers: {
-            size: 8,
-            shape: 'circle',
-            strokeWidth: 0,
-            strokeColors: 'transparent',
-            fillOpacity: 1,
-            hover: { size: 16 }
-        },
-        tooltip: { enabled: true }
-    }), [categoriasFinalizacoes])
+        grid: { borderColor: '#c5bdbd' }
+    }), [])
+    const faturamentoMensalSeries = [{ name: 'Faturamento', data: [42000, 58000] }]
 
-    const barChartOptions = useMemo(() => ({
-        chart: { type: 'bar', toolbar: { show: false }, background: 'transparent', stacked: true },
-        colors: ['#546E7A', '#B0BEC5'],
+    const evolucaoAnualOptions = useMemo(() => ({
+        chart: { type: 'line', toolbar: { show: false }, background: 'transparent' },
+        stroke: { curve: 'smooth', width: 3 },
+        colors: ['#141D24', '#2e7d32'],
+        markers: { size: 5 },
         xaxis: {
-            categories: categoriasRevisoes,
-            labels: { style: { fontSize: '18px' } }
+            categories: MESES_ATE_AGORA,
+            labels: { style: { fontSize: '20px' } }
         },
-        yaxis: { labels: { style: { fontSize: '18px' } } },
-        dataLabels: {
-            enabled: true,
-            formatter: (val, opts) => opts.seriesIndex === 0 ? val : '',
-            style: { colors: ['#fff'], fontSize: '19px' }
-        },
-        plotOptions: {
-            bar: {
-                borderRadius: 6,
-                borderRadiusApplication: 'end',
-                borderRadiusWhenStacked: 'last'
+        yaxis: {
+            labels: {
+                formatter: (val) => `R$${(val / 1000).toFixed(0)}k`,
+                style: { fontSize: '20px' }
             }
         },
+        legend: {
+            show: true,
+            position: 'top',
+            fontSize: '20px',
+            labels: { colors: '#141D24' }
+        },
+        grid: { borderColor: '#c5bdbd' }
+    }), [])
+    const evolucaoAnualSeries = [
+        { name: '2025', data: [38000, 41000, 39500, 44000, 47000, 45500, 51000, 53500, 52000] },
+        { name: '2026', data: [43000, 46500, 48000, 50500, 53000, 55500, 57000, 60000, 58000] }
+    ]
+
+    const servicoOptions = useMemo(() => ({
+        chart: { type: 'bar', toolbar: { show: false }, background: 'transparent' },
+        colors: ['#141D24', '#2e7d32'],
+        plotOptions: { bar: { columnWidth: '45%', borderRadius: 6 } },
+        xaxis: {
+            categories: ['Preventiva', 'Corretiva'],
+            labels: { style: { fontSize: '20px' } }
+        },
+        yaxis: { labels: { style: { fontSize: '20px' } } },
         legend: {
             show: true,
             position: 'top',
             fontSize: '18px',
             labels: { colors: '#141D24' }
         },
+        dataLabels: { enabled: true, style: { fontSize: '20px' } },
         grid: { borderColor: '#c5bdbd' }
-    }), [categoriasRevisoes])
-
-    const revenueChartOptions = useMemo(() => ({
-        chart: { type: 'bar', toolbar: { show: false }, background: 'transparent' },
-        colors: ['#546E7A'],
-        xaxis: {
-            categories: categoriasFaturamento,
-            labels: { style: { fontSize: '18px' } }
-        },
-        yaxis: {
-            labels: {
-                formatter: (val) => `R$${(val / 1000).toFixed(0)}k`,
-                style: { fontSize: '18px' }
-            }
-        },
-        dataLabels: {
-            enabled: true,
-            formatter: (val) => `${(val / 1000).toFixed(0)}k`,
-            style: { colors: ['#fff'], fontSize: '18px' },
-            offsetY: 0,
-        },
-        plotOptions: {
-            bar: {
-                dataLabels: { position: 'center' },
-                borderRadius: 6,
-                borderRadiusApplication: 'end'
-            }
-        },
-        legend: { show: false },
-        grid: { borderColor: '#c5bdbd' }
-    }), [categoriasFaturamento])
-
-    const cards = [
-        {
-            label: 'Faturamento do mês',
-            value: carregando ? '...' : formatarMoedaDashboard(resumo.faturamentoMes),
-            trend: carregando ? 'Carregando dados' : `Total: ${formatarMoedaDashboard(resumo.faturamentoTotal)}`,
-            up: null,
-            icon: <FaDollarSign />
-        },
-        {
-            label: 'Clientes e veículos',
-            value: carregando ? '...' : `${resumo.totalClientes} clientes`,
-            trend: carregando ? 'Carregando dados' : `${resumo.novosClientesMes} novos no mês • ${resumo.totalVeiculos} veículos`,
-            up: null,
-            icon: <FaUserPlus />
-        },
-        {
-            label: 'Ordens e revisões',
-            value: carregando ? '...' : `${resumo.totalOrdensServico} O.S.`,
-            trend: carregando ? 'Carregando dados' : `${resumo.totalOrdensAbertasEmAndamento} abertas • ${resumo.proximasRevisoes} revisões próximas`,
-            up: null,
-            icon: <FaBell />
-        },
+    }), [])
+    const servicoSeries = [
+        { name: 'Esperado', data: [40, 25] },
+        { name: 'Realizado', data: [35, 30] }
     ]
-
-    const ultimasOS = resumo.ultimasOrdens ?? []
-    const possuiOrdens = resumo.totalOrdensFinalizadas + resumo.totalOrdensAbertasEmAndamento > 0
-    const pieChartSeries = possuiOrdens
-        ? [resumo.totalOrdensFinalizadas, resumo.totalOrdensAbertasEmAndamento]
-        : [1]
-    const pieChartLabels = possuiOrdens
-        ? ['Finalizadas', 'Abertas']
-        : ['Sem dados']
-
-    const pieChartOptions = {
-        chart: { type: 'pie', background: 'transparent' },
-        colors: possuiOrdens ? ['#476370', '#7e95a0'] : ['#CFD8DC'],
-        labels: pieChartLabels,
-        legend: {
-            position: 'right',
-            fontSize: '20px',
-            labels: { colors: '#141D24' },
-            formatter: (seriesName) => seriesName,
-        },
-        dataLabels: {
-            enabled: true,
-            style: { fontSize: '20px' },
-            formatter: (val) => possuiOrdens ? `${val.toFixed(0)}%` : '0%'
-        },
-        tooltip: { enabled: false },
-    }
-
-    const lineChartSeries = [{ name: 'O.S. finalizadas', data: valoresSerie(resumo.finalizacoesUltimosMeses) }]
-    const barChartSeries = [
-        { name: 'Realizado', data: valoresSerie(resumo.revisoesPreventivasUltimosMeses, 'realizadas') },
-        { name: 'Estimativa', data: valoresSerie(resumo.revisoesPreventivasUltimosMeses, 'estimadas') }
-    ]
-    const revenueChartSeries = [{ name: 'Receita', data: valoresSerie(resumo.faturamentoUltimosMeses) }]
 
     return (
         <main id="main-content">
             <div className="dashboard-container">
-                <h1>Painel de indicadores da oficina</h1>
+                <h1>Painel financeiros</h1>
 
-                {(carregando || erro) && (
-                    <p className={`feedback dashboard-feedback ${erro ? 'error' : 'success'}`} aria-live="polite">
-                        {erro || 'Carregando indicadores da dashboard...'}
-                    </p>
-                )}
-
-                <div className="dashboard-top">
-
-                    <div className="cards-grid">
-                        {cards.map((card, i) => (
-                            <div className="indicator-card" key={i}>
-                                <div className="card-icon">{card.icon}</div>
-                                <div className="card-info">
-                                    <span className="card-label">{card.label}</span>
-                                    <span className="card-value">{card.value}</span>
-                                    <span className={`card-trend ${card.up === true ? 'up' : card.up === false ? 'down' : 'neutral'}`}>
-                                        {card.trend}
-                                    </span>
+                <div className="cards-grid cards-grid--financeira">
+                    <div className="indicator-card">
+                        <div className="card-icon"><FaDollarSign /></div>
+                        <div className="card-info">
+                            <div className="card-info-header">
+                                <span className="card-label">Faturamento</span>
+                                <div className="periodo-toggle">
+                                    <button
+                                        className={`periodo-btn ${periodoReceita === 'mensal' ? 'ativo' : ''}`}
+                                        onClick={() => setPeriodoReceita('mensal')}>Mensal</button>
+                                    <button
+                                        className={`periodo-btn ${periodoReceita === 'semestral' ? 'ativo' : ''}`}
+                                        onClick={() => setPeriodoReceita('semestral')}>Semestral</button>
+                                    <button
+                                        className={`periodo-btn ${periodoReceita === 'anual' ? 'ativo' : ''}`}
+                                        onClick={() => setPeriodoReceita('anual')}>Anual</button>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-
-                    <div className="chart-card status-chart-card">
-                        <span className="chart-title">Status das Ordens de Serviço</span>
-                        <ReactApexChart options={pieChartOptions} series={pieChartSeries} type="pie" height={230} />
-                        <div className="status-card-totals" aria-label="Resumo de ordens por status">
-                            <div>
-                                <span className="status-total-label">Finalizadas</span>
-                                <strong>{resumo.totalOrdensFinalizadas}</strong>
-                            </div>
-                            <div>
-                                <span className="status-total-label">Abertas</span>
-                                <strong>{resumo.totalOrdensAbertasEmAndamento}</strong>
-                            </div>
+                            <span className="card-value">{formatarMoeda(receitaAtual.valor)}</span>
+                            <span className="card-trend up">{receitaAtual.comparacao}</span>
                         </div>
                     </div>
 
-                    <div className="chart-card">
-                        <div className="chart-card-header">
-                            <span className="chart-title">Últimas Ordens de Serviço</span>
-                            <a href="./ordemServico" className="ver-todas">Ver todas →</a>
+                    <div className="indicator-card">
+                        <div className="card-icon"><FaUsers /></div>
+                        <div className="card-info">
+                            <span className="card-label">Clientes cadastrados</span>
+                            <span className="card-value">184</span>
+                            <span className="card-trend up">+12 desde o mês passado</span>
                         </div>
-                        <table className="os-mini-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Cliente</th>
-                                    <th>Veículo</th>
-                                    <th>Status</th>
-                                    <th>Data</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {ultimasOS.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#888' }}>
-                                            Nenhuma ordem de serviço encontrada.
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    ultimasOS.map((os, i) => {
-                                        const corStatus = statusColor[os.status] ?? '#546E7A'
-                                        return (
-                                            <tr key={os.id ?? i}>
-                                                <td>{os.id}</td>
-                                                <td>{os.cliente}</td>
-                                                <td>{os.veiculo}</td>
-                                                <td>
-                                                    <span className="os-status-badge" style={{ background: corStatus + '22', color: corStatus }}>
-                                                        {os.status}
-                                                    </span>
-                                                </td>
-                                                <td>{os.data}</td>
-                                            </tr>
-                                        )
-                                    })
-                                )}
-                            </tbody>
-                        </table>
                     </div>
                 </div>
 
-                <div className="charts-row">
+                <div className="charts-row charts-row--financeira">
                     <div className="chart-card-bottom">
-                        <span className="chart-title">Finalização de O.S. mensal dos últimos 6 meses</span>
-                        <ReactApexChart options={lineChartOptions} series={lineChartSeries} type="area" height={350} />
+                        <span className="chart-title">Faturamento mensal — comparativo anual</span>
+                        <ReactApexChart options={faturamentoMensalOptions} series={faturamentoMensalSeries} type="bar" height={480} />
                     </div>
                     <div className="chart-card-bottom">
-                        <span className="chart-title">Estimativa vs. Realização de revisões preventivas</span>
-                        <ReactApexChart options={barChartOptions} series={barChartSeries} type="bar" height={350} />
+                        <span className="chart-title">Evolução do faturamento acumulado</span>
+                        <ReactApexChart options={evolucaoAnualOptions} series={evolucaoAnualSeries} type="line" height={480} />
                     </div>
                     <div className="chart-card-bottom">
-                        <span className="chart-title">Receita financeira dos últimos 6 meses</span>
-                        <ReactApexChart options={revenueChartOptions} series={revenueChartSeries} type="bar" height={350} />
+                        <span className="chart-title">Preventiva vs corretiva — esperado x realizado</span>
+                        <ReactApexChart options={servicoOptions} series={servicoSeries} type="bar" height={480} />
                     </div>
                 </div>
-
             </div>
         </main>
     )

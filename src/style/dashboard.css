@@ -38,8 +38,8 @@
 }
 
 .card-icon {
-    font-size: 1.8rem;
-    color: #39474e;
+    font-size: 3rem;
+    color: #1f9115;
     flex-shrink: 0;
 }
 
@@ -51,27 +51,27 @@
 }
 
 .card-label {
-    font-size: 1.4rem;
+    font-size: 2rem;
     color: #000000;
     font-family: 'Poppins', sans-serif;
 }
 
 .card-value {
-    font-size: 1.8rem;
+    font-size: 3rem;
     font-weight: 700;
     color: #141D24;
     font-family: 'Poppins', sans-serif;
 }
 
 .card-trend {
-    font-size: 1.05rem;
+    font-size: 1.5rem;
     font-family: 'Poppins', sans-serif;
     line-height: 1.2;
 }
 
 .card-trend.up { color: #2e7d32; }
 .card-trend.down { color: #c62828; }
-.card-trend.neutral { color: #777; }
+.card-trend.neutral { color: #141D24; }
 
 .dashboard-feedback {
     margin: -8px 0 16px;
@@ -110,16 +110,16 @@
 }
 
 .status-total-label {
-    font-size: 0.9rem;
-    color: #546E7A;
+    font-size: 2rem;
+    color: #141D24;
 }
 
 .status-card-totals strong {
-    font-size: 1.45rem;
+    font-size: 2rem;
 }
 
 .chart-title {
-    font-size: 1.4rem;
+    font-size: 1.6rem;
     font-weight: 600;
     color: #141D24;
     font-family: 'Poppins', sans-serif;
@@ -133,7 +133,7 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 16px;
     margin-top: 16px;
-    height: 28rem;
+    height: 36rem;
 }
 
 .chart-card-bottom {
@@ -152,7 +152,7 @@
 
 .os-mini-table th {
     text-align: left;
-    color: #777;
+    color: #141D24;
     font-weight: 600;
     padding: 6px 8px;
     border-bottom: 1px solid #ccc;
@@ -177,7 +177,7 @@
     display: block;
     margin-top: 12px;
     font-size: 1.2rem;
-    color: #546E7A;
+    color: #141D24;
     font-family: 'Poppins', sans-serif;
     text-decoration: none;
     font-weight: 600;
@@ -201,4 +201,56 @@
 
 .chart-card-header .ver-todas {
     margin-top: 0;
+}
+
+/* ── DASHBOARD FINANCEIRA ── */
+.card-info-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.periodo-toggle {
+    display: flex;
+    gap: 4px;
+}
+
+.periodo-btn {
+    background: transparent;
+    border: 1px solid #ccc;
+    color: #141D24;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.periodo-btn:hover {
+    background: #e6e7e9;
+}
+
+.periodo-btn.ativo {
+    background: #141D24;
+    color: #fff;
+    border-color: #141D24;
+}
+
+.cards-grid--financeira {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.cards-grid--financeira .indicator-card {
+    flex: 1;
+    min-width: 260px;
+    height: auto;
+    align-items: flex-start;
+}
+
+.charts-row--financeira {
+    grid-template-columns: repeat(3, 1fr);
 }
