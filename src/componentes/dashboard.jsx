@@ -97,7 +97,7 @@ export function Dashboard() {
     return (
         <main id="main-content">
             <div className="dashboard-container">
-                <h1>Painel financeiros</h1>
+                <h1>Painel financeiro</h1>
 
                 <div className="cards-grid cards-grid--financeira">
                     <div className="indicator-card">
