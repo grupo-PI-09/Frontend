@@ -20,9 +20,11 @@ export function ProtectedRoute({ children }) {
         }
     }, [])
 
-    if (!autenticado) {
-        return <Navigate to="/login" replace />
-    }
+    // TEMPORÁRIO: login desativado enquanto o banco não está conectado.
+    // Reative removendo o comentário abaixo antes de subir pra produção.
+    // if (!autenticado) {
+    //     return <Navigate to="/login" replace />
+    // }
 
     return children
 }

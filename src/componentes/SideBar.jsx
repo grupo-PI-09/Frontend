@@ -222,7 +222,7 @@ export function SideBar({ collapsed, setCollapsed }) {
                 <nav className="menu">
                     <div className={`menu-item ${currentPage === 'dashboard' ? 'active' : ''}`} onClick={() => handleMenuClick('dashboard')}>
                         <img src={imgDashboard} className="menu-icon" />
-                        <span>Dashboard</span>
+                        <span>Painel Financeiro</span>
                     </div>
                     <div className={`menu-item ${currentPage === 'cliente' ? 'active' : ''}`} onClick={() => handleMenuClick('cliente')}>
                         <img src={imgCliente} className="menu-icon" />
