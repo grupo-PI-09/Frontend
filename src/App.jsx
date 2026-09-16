@@ -10,7 +10,6 @@ import { Dashboard } from './componentes/dashboard'
 import { ProtectedRoute } from './componentes/ProtectedRoute'
 import { Notificacoes } from './componentes/notificacoes'
 import { Agenda } from './componentes/agenda'
-import { isAuthenticated } from './services/auth'
 
 function Layout() {
   const [collapsed, setCollapsed] = useState(false)
@@ -34,7 +33,7 @@ function Layout() {
         background: mostrarSidebar ? '#f5f5f5' : 'transparent'
       }}>
         <Routes>
-          <Route path="/" element={<Navigate to={isAuthenticated() ? '/dashboard' : '/login'} replace />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/cadastro" element={<Cadastro />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -43,7 +42,7 @@ function Layout() {
           <Route path="/notificacoes" element={<ProtectedRoute><Notificacoes /></ProtectedRoute>} />
           <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
           <Route path="/editarPerfil" element={<ProtectedRoute><EditarPerfil /></ProtectedRoute>} />
-          <Route path="*" element={<Navigate to={isAuthenticated() ? '/dashboard' : '/login'} replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </div>
     </>
