@@ -1,23 +1,56 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ReactApexChart from 'react-apexcharts'
 import { FaDollarSign, FaUsers } from 'react-icons/fa'
+import { buscarResumoDashboard } from '../services/dashboardService'
 import '../style/dashboard.css'
 
-const MESES_ATE_AGORA = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set']
-
-const receitaPorPeriodo = {
-    mensal: { valor: 58000, comparacao: '+38% vs set/2025' },
-    semestral: { valor: 310000, comparacao: '+22% vs 1º sem. 2025' },
-    anual: { valor: 512000, comparacao: '+19% vs 2025 até agora' }
-}
-
 function formatarMoeda(valor) {
-    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+    return Number(valor ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
 }
+
+function classeTendencia(valor) {
+    if (valor > 0) return 'up'
+    if (valor < 0) return 'down'
+    return 'neutral'
+}
+
+const PERIODO_VAZIO = { valor: 0, comparacao: '', variacaoPercentual: null }
 
 export function Dashboard() {
     const [periodoReceita, setPeriodoReceita] = useState('mensal')
-    const receitaAtual = receitaPorPeriodo[periodoReceita]
+    const [resumo, setResumo] = useState(null)
+    const [carregando, setCarregando] = useState(true)
+    const [erro, setErro] = useState('')
+
+    useEffect(() => {
+        let ativo = true
+
+        async function carregar() {
+            setCarregando(true)
+            try {
+                const dados = await buscarResumoDashboard()
+                if (ativo) {
+                    setResumo(dados)
+                    setErro('')
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dashboard:', error)
+                if (ativo) setErro(error.message || 'Não foi possível carregar a dashboard.')
+            } finally {
+                if (ativo) setCarregando(false)
+            }
+        }
+
+        carregar()
+        return () => { ativo = false }
+    }, [])
+
+    const receitaAtual = resumo?.faturamento?.[periodoReceita] ?? PERIODO_VAZIO
+    const totalClientes = resumo?.totalClientes ?? 0
+    const novosClientesMes = resumo?.novosClientesMes ?? 0
+    const comparativo = useMemo(() => resumo?.faturamentoMensalComparativo ?? [], [resumo])
+    const evolucao = resumo?.evolucaoFaturamento
+    const servicosPorTipo = useMemo(() => resumo?.servicosPorTipo?.tipos ?? [], [resumo])
 
     const faturamentoMensalOptions = useMemo(() => ({
         chart: { type: 'bar', toolbar: { show: false }, background: 'transparent' },
@@ -25,7 +58,7 @@ export function Dashboard() {
         plotOptions: { bar: { columnWidth: '45%', borderRadius: 6, distributed: true } },
         legend: { show: false },
         xaxis: {
-            categories: ['Set 2025', 'Set 2026'],
+            categories: comparativo.map(ponto => ponto.label),
             labels: { style: { fontSize: '20px' } }
         },
         yaxis: {
@@ -40,8 +73,8 @@ export function Dashboard() {
             style: { colors: ['#fff'], fontSize: '20px' }
         },
         grid: { borderColor: '#c5bdbd' }
-    }), [])
-    const faturamentoMensalSeries = [{ name: 'Faturamento', data: [42000, 58000] }]
+    }), [comparativo])
+    const faturamentoMensalSeries = [{ name: 'Faturamento', data: comparativo.map(ponto => ponto.valor) }]
 
     const evolucaoAnualOptions = useMemo(() => ({
         chart: { type: 'line', toolbar: { show: false }, background: 'transparent' },
@@ -49,7 +82,7 @@ export function Dashboard() {
         colors: ['#141D24', '#2e7d32'],
         markers: { size: 5 },
         xaxis: {
-            categories: MESES_ATE_AGORA,
+            categories: evolucao?.meses ?? [],
             labels: { style: { fontSize: '20px' } }
         },
         yaxis: {
@@ -65,18 +98,18 @@ export function Dashboard() {
             labels: { colors: '#141D24' }
         },
         grid: { borderColor: '#c5bdbd' }
-    }), [])
-    const evolucaoAnualSeries = [
-        { name: '2025', data: [38000, 41000, 39500, 44000, 47000, 45500, 51000, 53500, 52000] },
-        { name: '2026', data: [43000, 46500, 48000, 50500, 53000, 55500, 57000, 60000, 58000] }
-    ]
+    }), [evolucao])
+    const evolucaoAnualSeries = evolucao ? [
+        { name: String(evolucao.anoAnterior), data: evolucao.acumuladoAnoAnterior },
+        { name: String(evolucao.anoAtual), data: evolucao.acumuladoAnoAtual }
+    ] : []
 
     const servicoOptions = useMemo(() => ({
         chart: { type: 'bar', toolbar: { show: false }, background: 'transparent' },
         colors: ['#141D24', '#2e7d32'],
         plotOptions: { bar: { columnWidth: '45%', borderRadius: 6 } },
         xaxis: {
-            categories: ['Preventiva', 'Corretiva'],
+            categories: servicosPorTipo.map(tipo => tipo.label),
             labels: { style: { fontSize: '20px' } }
         },
         yaxis: { labels: { style: { fontSize: '20px' } } },
@@ -88,16 +121,22 @@ export function Dashboard() {
         },
         dataLabels: { enabled: true, style: { fontSize: '20px' } },
         grid: { borderColor: '#c5bdbd' }
-    }), [])
+    }), [servicosPorTipo])
     const servicoSeries = [
-        { name: 'Esperado', data: [40, 25] },
-        { name: 'Realizado', data: [35, 30] }
+        { name: 'Esperado', data: servicosPorTipo.map(tipo => tipo.esperado) },
+        { name: 'Realizado', data: servicosPorTipo.map(tipo => tipo.realizado) }
     ]
 
     return (
         <main id="main-content">
             <div className="dashboard-container">
-                <h1>Painel financeiro</h1>
+                <h1>Painel financeiros</h1>
+
+                {(carregando || erro) && (
+                    <p className={`dashboard-feedback ${erro ? 'error' : ''}`} aria-live="polite">
+                        {carregando ? 'Carregando dados...' : erro}
+                    </p>
+                )}
 
                 <div className="cards-grid cards-grid--financeira">
                     <div className="indicator-card">
@@ -118,7 +157,9 @@ export function Dashboard() {
                                 </div>
                             </div>
                             <span className="card-value">{formatarMoeda(receitaAtual.valor)}</span>
-                            <span className="card-trend up">{receitaAtual.comparacao}</span>
+                            <span className={`card-trend ${classeTendencia(receitaAtual.variacaoPercentual)}`}>
+                                {receitaAtual.comparacao}
+                            </span>
                         </div>
                     </div>
 
@@ -126,8 +167,10 @@ export function Dashboard() {
                         <div className="card-icon"><FaUsers /></div>
                         <div className="card-info">
                             <span className="card-label">Clientes cadastrados</span>
-                            <span className="card-value">184</span>
-                            <span className="card-trend up">+12 desde o mês passado</span>
+                            <span className="card-value">{totalClientes}</span>
+                            <span className={`card-trend ${classeTendencia(novosClientesMes)}`}>
+                                {novosClientesMes > 0 ? `+${novosClientesMes}` : novosClientesMes} desde o mês passado
+                            </span>
                         </div>
                     </div>
                 </div>

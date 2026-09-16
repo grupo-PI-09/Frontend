@@ -98,6 +98,12 @@
     background-color: #e6e7e9;
 }
 
+/* coluna de ações: botões sempre na mesma linha, largura só do conteúdo */
+.client-table td:last-child {
+    white-space: nowrap;
+    width: 1%;
+}
+
 .tabela-vazia {
     text-align: center;
     padding: 20px;

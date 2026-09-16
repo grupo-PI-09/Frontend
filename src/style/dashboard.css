@@ -254,3 +254,12 @@
 .charts-row--financeira {
     grid-template-columns: repeat(3, 1fr);
 }
+/* Mensagem de carregamento / erro da dashboard */
+.dashboard-feedback {
+    font-size: 1.5rem;
+    font-family: 'Poppins', sans-serif;
+    color: #141D24;
+    margin: 0 0 1rem;
+}
+
+.dashboard-feedback.error { color: #c62828; }

@@ -11,6 +11,7 @@ import {
     mapOrdemApiParaTela
 } from '../services/ordemServicoService'
 import { apiRequest } from '../services/api'
+import { Paginacao } from './Paginacao'
 import '../style/ordemServico.css'
 import axios from 'axios'
 
@@ -568,27 +569,7 @@ export function OrdemServico() {
                     </tbody>
                 </table>
 
-                {totalPaginas > 1 && (
-                    <div className="paginacao">
-                        <button
-                            className={`btn-pagina ${paginaAtual === 1 ? 'desabilitado' : ''}`}
-                            onClick={() => setPaginaAtual(p => Math.max(p - 1, 1))}
-                            disabled={paginaAtual === 1}>‹
-                        </button>
-                        {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(pagina => (
-                            <button key={pagina}
-                                className={`btn-pagina ${paginaAtual === pagina ? 'ativo' : ''}`}
-                                onClick={() => setPaginaAtual(pagina)}>
-                                {pagina}
-                            </button>
-                        ))}
-                        <button
-                            className={`btn-pagina ${paginaAtual === totalPaginas ? 'desabilitado' : ''}`}
-                            onClick={() => setPaginaAtual(p => Math.min(p + 1, totalPaginas))}
-                            disabled={paginaAtual === totalPaginas}>›
-                        </button>
-                    </div>
-                )}
+                <Paginacao paginaAtual={paginaAtual} totalPaginas={totalPaginas} onChange={setPaginaAtual} />
             </div>
 
             {/* Modal Nova Ordem de Serviço */}

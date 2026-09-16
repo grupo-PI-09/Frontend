@@ -1,0 +1,18 @@
+/* ── PAGINAÇÃO (compartilhada: Clientes, OS, Notificações) ──
+   .paginacao / .btn-pagina continuam definidos nos CSS de cada tela;
+   aqui só o que é comum ao componente. */
+.paginacao {
+    flex-wrap: wrap;
+}
+
+.btn-pagina {
+    min-width: 40px;
+}
+
+.paginacao-reticencias {
+    min-width: 24px;
+    text-align: center;
+    color: #141D24;
+    font-weight: 600;
+    user-select: none;
+}
