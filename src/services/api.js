@@ -1,10 +1,38 @@
 import axios from 'axios'
 import { clearAuth, getToken } from './auth'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 const apiClient = axios.create({
     baseURL: API_BASE_URL
 })
+
+/**
+ * Erro padronizado da API. Corpo de erro do backend:
+ * { erro: true, mensagem: string, detalhes?: string }
+ */
+export class ApiError extends Error {
+    constructor(mensagem, status = null, detalhes = null) {
+        super(mensagem)
+        this.name = 'ApiError'
+        this.status = status
+        this.detalhes = detalhes
+    }
+}
+
+export function isErroApiExterna(error) {
+    return [502, 503, 504].includes(error?.status)
+}
+
+const MENSAGENS_PADRAO = {
+    400: 'Dados inválidos. Confira os campos preenchidos.',
+    401: 'Sua sessão expirou. Faça login novamente.',
+    403: 'Acesso negado.',
+    404: 'Registro não encontrado.',
+    409: 'Esta operação conflita com dados já cadastrados.',
+    502: 'Serviço externo indisponível no momento. Tente novamente em instantes.',
+    503: 'Serviço externo indisponível no momento. Tente novamente em instantes.',
+    504: 'O serviço externo demorou para responder. Tente novamente em instantes.'
+}
 
 function obterMensagemErro(error, authenticated) {
     const status = error.response?.status
@@ -12,41 +40,22 @@ function obterMensagemErro(error, authenticated) {
     const mensagemBackend = dados?.mensagem || dados?.message
     const detalhes = dados?.detalhes
 
-    if (authenticated && (status === 401 || status === 403)) {
-        return 'Sua sessão expirou ou você não tem permissão para acessar esta área. Faça login novamente.'
-    }
-
-    if (status === 400) {
-        return detalhes
-            ? `${mensagemBackend || 'Dados inválidos'}: ${detalhes}`
-            : mensagemBackend || 'Dados inválidos. Confira os campos preenchidos.'
+    if (status === 401 && authenticated) {
+        return MENSAGENS_PADRAO[401]
     }
 
     if (status === 401) {
         return mensagemBackend || 'E-mail ou senha inválidos.'
     }
 
-    if (status === 403) {
-        return mensagemBackend || 'Acesso negado. Verifique seu login e tente novamente.'
-    }
+    const mensagem = mensagemBackend
+        || MENSAGENS_PADRAO[status]
+        || (status >= 500 ? 'Erro interno no servidor. Tente novamente em instantes.' : null)
+        || error.message
+        || 'Erro ao processar a requisição.'
 
-    if (status === 404) {
-        return mensagemBackend || 'Registro não encontrado.'
-    }
-
-    if (status === 409) {
-        return detalhes ? `${mensagemBackend}: ${detalhes}` : mensagemBackend || 'Já existe um registro com estes dados.'
-    }
-
-    if (status >= 500) {
-        return detalhes
-            ? `${mensagemBackend || 'Erro interno no servidor'}: ${detalhes}`
-            : mensagemBackend || 'Erro interno no servidor. Tente novamente em instantes.'
-    }
-
-    return detalhes
-        ? `${mensagemBackend || 'Erro ao processar a requisição'}: ${detalhes}`
-        : mensagemBackend || error.message || 'Erro ao processar a requisição.'
+    // Em 400, `detalhes` traz as mensagens de validação separadas por vírgula.
+    return status === 400 && detalhes ? `${mensagem}: ${detalhes}` : mensagem
 }
 
 export async function apiRequest(path, options = {}, authenticated = true) {
@@ -75,14 +84,17 @@ export async function apiRequest(path, options = {}, authenticated = true) {
 
         return response.data
     } catch (error) {
-        if (authenticated && [401, 403].includes(error.response?.status)) {
+        const status = error.response?.status
+
+        // Só 401 encerra a sessão; demais erros (403, 409, 502...) mantêm o usuário logado.
+        if (authenticated && status === 401) {
             clearAuth()
         }
 
         if (!error.response) {
-            throw new Error('Não foi possível conectar ao backend. Verifique se a API Spring está rodando e se o CORS foi liberado.')
+            throw new ApiError('Não foi possível conectar ao backend. Verifique se a API Spring está rodando e se o CORS foi liberado.')
         }
 
-        throw new Error(obterMensagemErro(error, authenticated))
+        throw new ApiError(obterMensagemErro(error, authenticated), status, error.response.data?.detalhes ?? null)
     }
 }

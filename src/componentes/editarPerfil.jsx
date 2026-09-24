@@ -13,6 +13,11 @@ export function EditarPerfil() {
     const [nome, setNome] = useState('')
     const [email, setEmail] = useState('')
     const [senha, setSenha] = useState('')
+    const [senhaAtual, setSenhaAtual] = useState('')
+    const [emailOriginal, setEmailOriginal] = useState('')
+
+    const emailAlterado = email.trim().toLowerCase() !== emailOriginal.trim().toLowerCase()
+    const exigeSenhaAtual = emailAlterado || senha !== ''
 
     useEffect(() => {
         async function carregarPerfil() {
@@ -23,11 +28,13 @@ export function EditarPerfil() {
                 if (usuarioLocal) {
                     setNome(usuarioLocal.nome || '')
                     setEmail(usuarioLocal.email || '')
+                    setEmailOriginal(usuarioLocal.email || '')
                 }
 
                 const usuarioAtual = await apiRequest('/usuarios/me')
                 setNome(usuarioAtual.nome || '')
                 setEmail(usuarioAtual.email || '')
+                setEmailOriginal(usuarioAtual.email || '')
                 saveUsuario(usuarioAtual)
             } catch (error) {
                 setFeedback({ message: error.message, type: 'error' })
@@ -47,6 +54,11 @@ export function EditarPerfil() {
             return
         }
 
+        if (exigeSenhaAtual && !senhaAtual) {
+            setFeedback({ message: 'Informe a senha atual para alterar e-mail ou senha.', type: 'error' })
+            return
+        }
+
         setSalvando(true)
         setFeedback({ message: 'Salvando alterações...', type: 'success' })
 
@@ -56,12 +68,16 @@ export function EditarPerfil() {
                 data: {
                     nome: nome.trim(),
                     email: email.trim(),
-                    senha: senha === '' ? null : senha
+                    senha: senha === '' ? null : senha,
+                    senhaAtual: senhaAtual === '' ? null : senhaAtual
                 }
             })
 
+            // O e-mail identifica o token, então a resposta traz um token novo que substitui o salvo.
             saveAuth(resposta)
+            setEmailOriginal(resposta.usuario?.email ?? email.trim())
             setSenha('')
+            setSenhaAtual('')
             setFeedback({ message: 'Perfil atualizado com sucesso.', type: 'success' })
         } catch (error) {
             setFeedback({ message: error.message, type: 'error' })
@@ -137,6 +153,26 @@ export function EditarPerfil() {
                                 value={senha}
                                 onChange={(evento) => setSenha(evento.target.value)}
                                 placeholder="Deixe em branco para manter a senha atual"
+                                disabled={carregandoPerfil || salvando || excluindo}
+                            />
+                        </div>
+
+                        <div className="profile-field">
+                            <label htmlFor="profile-current-password">
+                                Senha atual{exigeSenhaAtual ? ' *' : ''}
+                            </label>
+                            <input
+                                id="profile-current-password"
+                                name="current-password"
+                                type="password"
+                                autoComplete="current-password"
+                                required={exigeSenhaAtual}
+                                aria-required={exigeSenhaAtual}
+                                value={senhaAtual}
+                                onChange={(evento) => setSenhaAtual(evento.target.value)}
+                                placeholder={exigeSenhaAtual
+                                    ? 'Obrigatória para alterar e-mail ou senha'
+                                    : 'Necessária apenas para alterar e-mail ou senha'}
                                 disabled={carregandoPerfil || salvando || excluindo}
                             />
                         </div>

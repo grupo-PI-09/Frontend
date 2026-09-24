@@ -1,5 +1,6 @@
 import { apiRequest } from './api'
 import { getUsuario } from './auth'
+import { formatarTelefone } from './clienteService'
 
 export const STATUS_ORDEM_SERVICO = [
     { value: 'aberta', label: 'Aberta' },
@@ -82,7 +83,7 @@ export function mapOrdemApiParaTela(ordem = {}, clientes = [], veiculos = []) {
         tipoServico: ordem.tipoServico ?? 'corretiva',
         encerrada: ordemEstaEncerrada({ statusBackend }),
         nomeCliente: ordem.nomeCliente ?? cliente?.nome ?? '',
-        telefone: cliente?.telefone ?? '',
+        telefone: formatarTelefone(cliente?.telefone),
         carro: veiculo?.label ?? ordem.placaVeiculo ?? '',
         dataEntrada: formatarData(ordem.dataAbertura),
         dataEncerramento: formatarData(ordem.dataFechamento),
@@ -163,4 +164,9 @@ export function atualizarOrdemServico(id, dados, ordemBase) {
 
 export function excluirOrdemServico(id) {
     return apiRequest(`/ordens/${id}`, { method: 'DELETE' })
+}
+
+/** Alternativa à exclusão quando a OS tem notificações (DELETE responde 409). */
+export function cancelarOrdemServico(ordem) {
+    return atualizarOrdemServico(ordem.id, { status: 'cancelada' }, ordem)
 }

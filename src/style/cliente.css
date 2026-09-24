@@ -164,6 +164,7 @@
 
 .feedback.success { color: #2e7d32; }
 .feedback.error { color: #E31B13; }
+.feedback.warning { color: #a16207; }
 
 /* ── MODAL ── */
 .modal {

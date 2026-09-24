@@ -2,14 +2,25 @@ import { useEffect, useState } from 'react'
 import { FaSearch, FaPencilAlt, FaTrash } from 'react-icons/fa'
 import axios from 'axios'
 import {
+    LIMITES_CLIENTE,
     atualizarCliente,
     criarCliente,
+    dataMaximaNascimento,
+    desativarCliente,
     excluirCliente,
+    formatarTelefone,
     listarClientesComVeiculos
 } from '../services/clienteService'
 import {
+    ANO_MAXIMO_VEICULO,
+    ANO_MINIMO_VEICULO,
+    LIMITES_VEICULO,
+    TIPOS_COMBUSTIVEL,
     consultarPlacaBackend,
+    desativarVeiculo,
     mapVeiculoTelaParaApi,
+    mensagemFalhaConsultaPlaca,
+    placaValida,
     salvarVeiculosDoCliente
 } from '../services/veiculoService'
 import { Paginacao } from './Paginacao'
@@ -67,17 +78,11 @@ function formatarCpf(valor) {
     return `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(6, 9)}-${digitos.slice(9)}`
 }
 
-function formatarTelefone(valor) {
-    const digitos = apenasDigitos(valor, 11)
-
-    if (digitos.length <= 2) return digitos
-
-    const ddd = digitos.slice(0, 2)
-
-    if (digitos.length <= 6) return `(${ddd}) ${digitos.slice(2)}`
-    if (digitos.length <= 10) return `(${ddd}) ${digitos.slice(2, 6)}-${digitos.slice(6)}`
-
-    return `(${ddd}) ${digitos.slice(2, 7)}-${digitos.slice(7)}`
+const ROTULOS_COMBUSTIVEL = {
+    gasolina: 'Gasolina',
+    etanol: 'Etanol',
+    flex: 'Flex',
+    diesel: 'Diesel'
 }
 
 function formatarCep(valor) {
@@ -129,6 +134,7 @@ function BlocoVeiculos({
                             <div className="input-group">
                                 <label>Placa *</label>
                                 <input type="text" placeholder="ABC1D23"
+                                    maxLength={LIMITES_VEICULO.placa}
                                     value={veiculo.placa ?? ''}
                                     onChange={e => onAtualizar(index, 'placa', e.target.value.toUpperCase())}
                                     aria-required="true" />
@@ -152,6 +158,7 @@ function BlocoVeiculos({
                             <div className="input-group">
                                 <label>Modelo *</label>
                                 <input type="text" placeholder="Ex: Civic EXL"
+                                    maxLength={LIMITES_VEICULO.modelo}
                                     value={veiculo.modelo ?? ''}
                                     onChange={e => onAtualizar(index, 'modelo', e.target.value)}
                                     aria-required="true" />
@@ -159,6 +166,7 @@ function BlocoVeiculos({
                             <div className="input-group">
                                 <label>Marca *</label>
                                 <input type="text" placeholder="Ex: Honda"
+                                    maxLength={LIMITES_VEICULO.marca}
                                     value={veiculo.marca ?? ''}
                                     onChange={e => onAtualizar(index, 'marca', e.target.value)}
                                     aria-required="true" />
@@ -168,7 +176,8 @@ function BlocoVeiculos({
                         <div className="row-triple">
                             <div className="input-group">
                                 <label>Ano *</label>
-                                <input type="text" placeholder="2022"
+                                <input type="number" placeholder="2022"
+                                    min={ANO_MINIMO_VEICULO} max={ANO_MAXIMO_VEICULO}
                                     value={veiculo.ano ?? ''}
                                     onChange={e => onAtualizar(index, 'ano', e.target.value)} />
                             </div>
@@ -183,10 +192,9 @@ function BlocoVeiculos({
                                 <select value={veiculo.combustivel ?? ''}
                                     onChange={e => onAtualizar(index, 'combustivel', e.target.value)}>
                                     <option value="">Selecione...</option>
-                                    <option value="flex">Flex</option>
-                                    <option value="gasolina">Gasolina</option>
-                                    <option value="etanol">Etanol</option>
-                                    <option value="diesel">Diesel</option>
+                                    {TIPOS_COMBUSTIVEL.map(tipo => (
+                                        <option key={tipo} value={tipo}>{ROTULOS_COMBUSTIVEL[tipo]}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
@@ -233,6 +241,10 @@ export function Cliente() {
     const [buscandoCepEdicao, setBuscandoCepEdicao] = useState(false)
     const [salvandoEdicao, setSalvandoEdicao] = useState(false)
     const [excluindoCliente, setExcluindoCliente] = useState(false)
+    const [exclusaoBloqueada, setExclusaoBloqueada] = useState('')
+    const [desativandoCliente, setDesativandoCliente] = useState(false)
+    const [veiculosBloqueados, setVeiculosBloqueados] = useState([])
+    const [desativandoVeiculos, setDesativandoVeiculos] = useState(false)
 
     useEffect(() => {
         carregarClientes()
@@ -365,8 +377,8 @@ export function Cliente() {
         if (!veiculoAtual) return
 
         const placaNormalizada = placaInformada.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
-        if (placaNormalizada.length < 7) {
-            setPlacaFeedback({ message: 'Digite uma placa válida para consultar.', type: 'error', veiculoLocalId: veiculoAtual.localId })
+        if (!placaValida(placaNormalizada)) {
+            setPlacaFeedback({ message: 'Digite uma placa válida (ABC1234 ou ABC1D23) para consultar.', type: 'error', veiculoLocalId: veiculoAtual.localId })
             setUltimasPlacasConsultadas(placas => {
                 const restante = { ...placas }
                 delete restante[veiculoAtual.localId]
@@ -404,7 +416,8 @@ export function Cliente() {
                 delete restante[veiculoAtual.localId]
                 return restante
             })
-            setPlacaFeedback({ message: error.message, type: 'error', veiculoLocalId: veiculoAtual.localId })
+            // 404 ou falha da APIBrasil: avisa e deixa marca/modelo para preenchimento manual.
+            setPlacaFeedback({ ...mensagemFalhaConsultaPlaca(error), veiculoLocalId: veiculoAtual.localId })
         } finally {
             setConsultandoPlacaId(null)
         }
@@ -455,6 +468,7 @@ export function Cliente() {
         )
         setCepFeedbackEdicao({ message: '', type: '' })
         setEdicaoFeedback({ message: '', type: '' })
+        setVeiculosBloqueados([])
         setModalEditarOpen(true)
     }
 
@@ -517,8 +531,19 @@ export function Cliente() {
 
         try {
             await atualizarCliente(clienteEditando.id, formularioEdicao, formularioEnderecoEdicao)
-            await salvarVeiculosDoCliente(clienteEditando.id, veiculosEdicao, clienteEditando.veiculos ?? [])
+            const { bloqueados } = await salvarVeiculosDoCliente(clienteEditando.id, veiculosEdicao, clienteEditando.veiculos ?? [])
             await carregarClientes()
+
+            if (bloqueados.length) {
+                // Veículo com OSs/notificações não pode ser excluído (409): oferece desativar.
+                setVeiculosBloqueados(bloqueados)
+                setEdicaoFeedback({
+                    message: `Cliente atualizado, mas ${bloqueados.map(({ veiculo, mensagem }) => `${veiculo.label ?? veiculo.placa}: ${mensagem}`).join(' ')}`,
+                    type: 'warning'
+                })
+                return
+            }
+
             setFeedbackGeral({ message: 'Cliente atualizado com sucesso.', type: 'success' })
             fecharModalEditar()
         } catch (error) {
@@ -529,15 +554,52 @@ export function Cliente() {
         }
     }
 
+    async function handleDesativarVeiculosBloqueados() {
+        setDesativandoVeiculos(true)
+        setEdicaoFeedback({ message: 'Desativando veículo(s)...', type: 'success' })
+
+        try {
+            for (const { veiculo } of veiculosBloqueados) {
+                await desativarVeiculo(veiculo)
+            }
+            await carregarClientes()
+            setFeedbackGeral({ message: 'Cliente atualizado e veículo(s) desativado(s) com sucesso.', type: 'success' })
+            fecharModalEditar()
+        } catch (error) {
+            setEdicaoFeedback({ message: error.message, type: 'error' })
+        } finally {
+            setDesativandoVeiculos(false)
+        }
+    }
+
     // ── Funções exclusão ──
     function abrirModalExcluir(cliente) {
         setClienteExcluindo(cliente)
+        setExclusaoBloqueada('')
         setModalExcluirOpen(true)
     }
 
     function fecharModalExcluir() {
         setModalExcluirOpen(false)
         setClienteExcluindo(null)
+        setExclusaoBloqueada('')
+    }
+
+    async function handleDesativarCliente() {
+        if (!clienteExcluindo) return
+
+        setDesativandoCliente(true)
+
+        try {
+            await desativarCliente(clienteExcluindo)
+            await carregarClientes()
+            setFeedbackGeral({ message: 'Cliente desativado com sucesso.', type: 'success' })
+            fecharModalExcluir()
+        } catch (error) {
+            setExclusaoBloqueada(error.message)
+        } finally {
+            setDesativandoCliente(false)
+        }
     }
 
     async function handleExcluirCliente() {
@@ -553,7 +615,13 @@ export function Cliente() {
             fecharModalExcluir()
         } catch (error) {
             console.error('Erro ao excluir cliente:', error)
-            setFeedbackGeral({ message: error.message, type: 'error' })
+            if (error.status === 409) {
+                // Cliente com veículos, OSs ou notificações: mantém o modal aberto e oferece desativar.
+                setFeedbackGeral({ message: '', type: '' })
+                setExclusaoBloqueada(error.message)
+            } else {
+                setFeedbackGeral({ message: error.message, type: 'error' })
+            }
         } finally {
             setExcluindoCliente(false)
         }
@@ -616,7 +684,7 @@ export function Cliente() {
                                 <tr key={cliente.id}>
                                     <td>{cliente.nome}</td>
                                     <td>{cliente.email}</td>
-                                    <td>{cliente.telefone}</td>
+                                    <td>{formatarTelefone(cliente.telefone)}</td>
                                     <td>{cliente.veiculo}</td>
                                     <td>
                                         <button className="btn-detalhes" aria-label={`Editar ${cliente.nome}`}
@@ -652,6 +720,7 @@ export function Cliente() {
                             <div className="input-group full">
                                 <label htmlFor="nome-completo">Nome Completo *</label>
                                 <input id="nome-completo" type="text" placeholder="Ex: João Silva"
+                                    maxLength={LIMITES_CLIENTE.nome}
                                     value={formularioCadastro.nomeCompleto}
                                     onChange={e => atualizarCampoCadastro('nomeCompleto', e.target.value)}
                                     aria-required="true" />
@@ -668,6 +737,7 @@ export function Cliente() {
                                 <div className="input-group">
                                     <label htmlFor="dt-nascimento">Data de nascimento</label>
                                     <input id="dt-nascimento" type="date"
+                                        max={dataMaximaNascimento()}
                                         value={formularioCadastro.dtNascimento}
                                         onChange={e => atualizarCampoCadastro('dtNascimento', e.target.value)} />
                                 </div>
@@ -684,6 +754,7 @@ export function Cliente() {
                             <div className="input-group full">
                                 <label htmlFor="email">E-mail *</label>
                                 <input id="email" type="email" placeholder="exemplo@email.com"
+                                    maxLength={LIMITES_CLIENTE.email}
                                     value={formularioCadastro.email}
                                     onChange={e => atualizarCampoCadastro('email', e.target.value)}
                                     aria-required="true" />
@@ -700,6 +771,7 @@ export function Cliente() {
                                 <div className="input-group">
                                     <label htmlFor="numero">Número</label>
                                     <input id="numero" type="text" placeholder="123"
+                                        maxLength={LIMITES_CLIENTE.numero}
                                         value={formularioEndereco.numero}
                                         onChange={e => atualizarCampoEndereco('numero', e.target.value)} />
                                 </div>
@@ -712,6 +784,7 @@ export function Cliente() {
                             <div className="input-group full">
                                 <label htmlFor="logradouro">Logradouro</label>
                                 <input id="logradouro" type="text" placeholder="Rua, avenida..."
+                                    maxLength={LIMITES_CLIENTE.logradouro}
                                     value={formularioEndereco.logradouro}
                                     onChange={e => atualizarCampoEndereco('logradouro', e.target.value)} />
                             </div>
@@ -720,12 +793,14 @@ export function Cliente() {
                                 <div className="input-group">
                                     <label htmlFor="bairro">Bairro</label>
                                     <input id="bairro" type="text" placeholder="Bairro"
+                                        maxLength={LIMITES_CLIENTE.bairro}
                                         value={formularioEndereco.bairro}
                                         onChange={e => atualizarCampoEndereco('bairro', e.target.value)} />
                                 </div>
                                 <div className="input-group">
                                     <label htmlFor="cidade">Cidade</label>
                                     <input id="cidade" type="text" placeholder="Cidade"
+                                        maxLength={LIMITES_CLIENTE.cidade}
                                         value={formularioEndereco.cidade}
                                         onChange={e => atualizarCampoEndereco('cidade', e.target.value)} />
                                 </div>
@@ -735,12 +810,14 @@ export function Cliente() {
                                 <div className="input-group">
                                     <label htmlFor="estado">Estado</label>
                                     <input id="estado" type="text" placeholder="UF"
+                                        maxLength={LIMITES_CLIENTE.estado}
                                         value={formularioEndereco.estado}
-                                        onChange={e => atualizarCampoEndereco('estado', e.target.value)} />
+                                        onChange={e => atualizarCampoEndereco('estado', e.target.value.toUpperCase())} />
                                 </div>
                                 <div className="input-group">
                                     <label htmlFor="complemento">Complemento</label>
                                     <input id="complemento" type="text" placeholder="Apto, bloco..."
+                                        maxLength={LIMITES_CLIENTE.complemento}
                                         value={formularioEndereco.complemento}
                                         onChange={e => atualizarCampoEndereco('complemento', e.target.value)} />
                                 </div>
@@ -789,6 +866,7 @@ export function Cliente() {
                             <div className="input-group full">
                                 <label htmlFor="edit-nome">Nome Completo *</label>
                                 <input id="edit-nome" type="text"
+                                    maxLength={LIMITES_CLIENTE.nome}
                                     value={formularioEdicao.nomeCompleto}
                                     onChange={e => atualizarCampoEdicao('nomeCompleto', e.target.value)}
                                     aria-required="true" />
@@ -805,6 +883,7 @@ export function Cliente() {
                                 <div className="input-group">
                                     <label htmlFor="edit-dt-nascimento">Data de nascimento</label>
                                     <input id="edit-dt-nascimento" type="date"
+                                        max={dataMaximaNascimento()}
                                         value={formularioEdicao.dtNascimento}
                                         onChange={e => atualizarCampoEdicao('dtNascimento', e.target.value)} />
                                 </div>
@@ -821,6 +900,7 @@ export function Cliente() {
                             <div className="input-group full">
                                 <label htmlFor="edit-email">E-mail *</label>
                                 <input id="edit-email" type="email"
+                                    maxLength={LIMITES_CLIENTE.email}
                                     value={formularioEdicao.email}
                                     onChange={e => atualizarCampoEdicao('email', e.target.value)}
                                     aria-required="true" />
@@ -837,6 +917,7 @@ export function Cliente() {
                                 <div className="input-group">
                                     <label htmlFor="edit-numero">Número</label>
                                     <input id="edit-numero" type="text"
+                                        maxLength={LIMITES_CLIENTE.numero}
                                         value={formularioEnderecoEdicao.numero}
                                         onChange={e => atualizarCampoEnderecoEdicao('numero', e.target.value)} />
                                 </div>
@@ -849,6 +930,7 @@ export function Cliente() {
                             <div className="input-group full">
                                 <label htmlFor="edit-logradouro">Logradouro</label>
                                 <input id="edit-logradouro" type="text"
+                                    maxLength={LIMITES_CLIENTE.logradouro}
                                     value={formularioEnderecoEdicao.logradouro}
                                     onChange={e => atualizarCampoEnderecoEdicao('logradouro', e.target.value)} />
                             </div>
@@ -857,12 +939,14 @@ export function Cliente() {
                                 <div className="input-group">
                                     <label htmlFor="edit-bairro">Bairro</label>
                                     <input id="edit-bairro" type="text"
+                                        maxLength={LIMITES_CLIENTE.bairro}
                                         value={formularioEnderecoEdicao.bairro}
                                         onChange={e => atualizarCampoEnderecoEdicao('bairro', e.target.value)} />
                                 </div>
                                 <div className="input-group">
                                     <label htmlFor="edit-cidade">Cidade</label>
                                     <input id="edit-cidade" type="text"
+                                        maxLength={LIMITES_CLIENTE.cidade}
                                         value={formularioEnderecoEdicao.cidade}
                                         onChange={e => atualizarCampoEnderecoEdicao('cidade', e.target.value)} />
                                 </div>
@@ -872,12 +956,14 @@ export function Cliente() {
                                 <div className="input-group">
                                     <label htmlFor="edit-estado">Estado</label>
                                     <input id="edit-estado" type="text"
+                                        maxLength={LIMITES_CLIENTE.estado}
                                         value={formularioEnderecoEdicao.estado}
-                                        onChange={e => atualizarCampoEnderecoEdicao('estado', e.target.value)} />
+                                        onChange={e => atualizarCampoEnderecoEdicao('estado', e.target.value.toUpperCase())} />
                                 </div>
                                 <div className="input-group">
                                     <label htmlFor="edit-complemento">Complemento</label>
                                     <input id="edit-complemento" type="text"
+                                        maxLength={LIMITES_CLIENTE.complemento}
                                         value={formularioEnderecoEdicao.complemento}
                                         onChange={e => atualizarCampoEnderecoEdicao('complemento', e.target.value)} />
                                 </div>
@@ -897,10 +983,18 @@ export function Cliente() {
                     </div>
 
                     <div className="modal-footer">
-                        <button type="button" className="btn-cancelar" onClick={fecharModalEditar}>Cancelar</button>
-                        <button type="button" className="btn-salvar" onClick={handleSalvarEdicao} disabled={salvandoEdicao}>
-                            {salvandoEdicao ? 'Salvando...' : 'Salvar alterações'}
+                        <button type="button" className="btn-cancelar" onClick={fecharModalEditar}>
+                            {veiculosBloqueados.length ? 'Fechar' : 'Cancelar'}
                         </button>
+                        {veiculosBloqueados.length ? (
+                            <button type="button" className="btn-salvar" onClick={handleDesativarVeiculosBloqueados} disabled={desativandoVeiculos}>
+                                {desativandoVeiculos ? 'Desativando...' : 'Desativar veículo(s)'}
+                            </button>
+                        ) : (
+                            <button type="button" className="btn-salvar" onClick={handleSalvarEdicao} disabled={salvandoEdicao}>
+                                {salvandoEdicao ? 'Salvando...' : 'Salvar alterações'}
+                            </button>
+                        )}
                     </div>
                     <p className={`feedback ${edicaoFeedback.type}`} aria-live="polite">
                         {edicaoFeedback.message}
@@ -926,13 +1020,24 @@ export function Cliente() {
                                 </p>
                             </div>
                         </div>
+                        {exclusaoBloqueada && (
+                            <p className="feedback warning" aria-live="polite">
+                                {exclusaoBloqueada} Você pode desativar o cliente em vez de excluí-lo.
+                            </p>
+                        )}
                     </div>
 
                     <div className="modal-footer">
                         <button type="button" className="btn-cancelar" onClick={fecharModalExcluir}>Cancelar</button>
-                        <button type="button" className="btn-excluir-confirmar" onClick={handleExcluirCliente} disabled={excluindoCliente}>
-                            {excluindoCliente ? 'Excluindo...' : 'Sim, excluir'}
-                        </button>
+                        {exclusaoBloqueada ? (
+                            <button type="button" className="btn-salvar" onClick={handleDesativarCliente} disabled={desativandoCliente}>
+                                {desativandoCliente ? 'Desativando...' : 'Desativar'}
+                            </button>
+                        ) : (
+                            <button type="button" className="btn-excluir-confirmar" onClick={handleExcluirCliente} disabled={excluindoCliente}>
+                                {excluindoCliente ? 'Excluindo...' : 'Sim, excluir'}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
