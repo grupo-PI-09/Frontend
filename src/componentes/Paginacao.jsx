@@ -68,3 +68,33 @@ export function Paginacao({ paginaAtual, totalPaginas, onChange }) {
         </nav>
     )
 }
+
+/**
+ * Paginação por cursor: não existe total nem salto para uma página qualquer,
+ * só "anterior" e "próxima". Quem usa guarda a pilha de cursores já visitados.
+ */
+export function PaginacaoCursor({ paginaAtual, temAnterior, temProxima, onAnterior, onProxima }) {
+    if (!temAnterior && !temProxima) {
+        return null
+    }
+
+    return (
+        <nav className="paginacao" aria-label="Paginação">
+            <button
+                type="button"
+                className={`btn-pagina ${temAnterior ? '' : 'desabilitado'}`}
+                onClick={onAnterior}
+                disabled={!temAnterior}
+                aria-label="Página anterior">‹ Anterior</button>
+
+            <span className="paginacao-indicador" aria-current="page">Página {paginaAtual}</span>
+
+            <button
+                type="button"
+                className={`btn-pagina ${temProxima ? '' : 'desabilitado'}`}
+                onClick={onProxima}
+                disabled={!temProxima}
+                aria-label="Próxima página">Próxima ›</button>
+        </nav>
+    )
+}

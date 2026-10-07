@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { FaSearch, FaPencilAlt, FaTrash, FaPowerOff, FaEye } from 'react-icons/fa'
 import { LIMITES_CLIENTE, criarCliente, formatarTelefone, listarClientesComVeiculos } from '../services/clienteService'
 import {
@@ -20,7 +20,7 @@ import {
     cancelarOrdemServico,
     criarOrdemServico,
     excluirOrdemServico,
-    listarOrdensServico,
+    listarOrdensServicoPaginado,
     mapOrdemApiParaTela
 } from '../services/ordemServicoService'
 import { Paginacao } from './Paginacao'
@@ -139,14 +139,18 @@ function montarFeedbackOrdem(resposta = {}, mensagemBase) {
 
 export function OrdemServico() {
     const [busca, setBusca] = useState('')
+    const [buscaAplicada, setBuscaAplicada] = useState('')
     const [paginaAtual, setPaginaAtual] = useState(1)
+    const [totalPaginas, setTotalPaginas] = useState(0)
     const [modalOpen, setModalOpen] = useState(false)
     const [modalEncerramentoOpen, setModalEncerramentoOpen] = useState(false)
     const [ordemParaEncerrar, setOrdemParaEncerrar] = useState(null)
     const [form, setForm] = useState(estadoInicialForm)
     const [formEncerramento, setFormEncerramento] = useState(estadoInicialEncerramento)
     const [clientes, setClientes] = useState([])
-    const [ordens, setOrdens] = useState([])
+    const [veiculosApi, setVeiculosApi] = useState([])
+    const [ordensApi, setOrdensApi] = useState([])
+    const ultimaRequisicao = useRef(0)
     const [modalExcluirOpen, setModalExcluirOpen] = useState(false)
     const [ordemExcluindo, setOrdemExcluindo] = useState(null)
     const [carregandoDados, setCarregandoDados] = useState(false)
@@ -161,35 +165,90 @@ export function OrdemServico() {
     const [ordemEditando, setOrdemEditando] = useState(null)
     const [formEdicao, setFormEdicao] = useState(estadoInicialEdicao)
 
+    // Clientes e veículos alimentam o seletor do modal e os campos Telefone/Carro da tabela.
     useEffect(() => {
-        carregarDados()
+        carregarApoio()
     }, [])
 
-    async function carregarDados() {
-        setCarregandoDados(true)
+    // ── Paginação (offset, no backend) ──
+    // A busca digitada só vira filtro do servidor depois de uma pausa (ou Enter/botão).
+    useEffect(() => {
+        const espera = setTimeout(() => {
+            setBuscaAplicada(busca.trim())
+            setPaginaAtual(1)
+        }, 400)
+
+        return () => clearTimeout(espera)
+    }, [busca])
+
+    async function carregarApoio() {
         try {
-            const [clientesApi, veiculosApi, ordensApi] = await Promise.all([
+            const [clientesApi, veiculos] = await Promise.all([
                 listarClientesComVeiculos(),
-                listarVeiculos(),
-                listarOrdensServico()
+                listarVeiculos()
             ])
             setClientes(clientesApi)
-            setOrdens(ordensApi.map(ordem => mapOrdemApiParaTela(ordem, clientesApi, veiculosApi)))
-            setFeedback(feedbackAtual => feedbackAtual.type === 'error' ? { message: '', type: '' } : feedbackAtual)
+            setVeiculosApi(veiculos)
         } catch (error) {
-            console.error('Erro ao carregar ordens de serviço:', error)
+            console.error('Erro ao carregar clientes e veículos:', error)
             setFeedback({ message: error.message, type: 'error' })
-        } finally {
-            setCarregandoDados(false)
         }
     }
 
-    const ordensFiltradas = ordens.filter(o =>
-        String(o.nomeCliente ?? '').toLowerCase().includes(busca.toLowerCase())
+    async function carregarOrdens() {
+        const requisicao = ++ultimaRequisicao.current
+        setCarregandoDados(true)
+
+        try {
+            const resposta = await listarOrdensServicoPaginado({
+                pagina: paginaAtual,
+                tamanho: ITENS_POR_PAGINA,
+                busca: buscaAplicada
+            })
+
+            // resposta de uma consulta antiga (usuário já mudou de página/busca)
+            if (requisicao !== ultimaRequisicao.current) return
+
+            // a página deixou de existir (ex.: excluiu a última OS da última página)
+            if (resposta.content.length === 0 && paginaAtual > 1) {
+                setPaginaAtual(Math.max(resposta.totalPages, 1))
+                return
+            }
+
+            setOrdensApi(resposta.content)
+            setTotalPaginas(resposta.totalPages)
+            setFeedback(feedbackAtual => feedbackAtual.type === 'error' ? { message: '', type: '' } : feedbackAtual)
+        } catch (error) {
+            if (requisicao !== ultimaRequisicao.current) return
+            console.error('Erro ao carregar ordens de serviço:', error)
+            setFeedback({ message: error.message, type: 'error' })
+        } finally {
+            if (requisicao === ultimaRequisicao.current) {
+                setCarregandoDados(false)
+            }
+        }
+    }
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- busca no servidor ao mudar página/busca
+        carregarOrdens()
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- recarrega só quando página ou busca mudam
+    }, [paginaAtual, buscaAplicada])
+
+    // Recarrega a página atual e os apoios depois de criar/editar/excluir/encerrar.
+    async function carregarDados() {
+        await Promise.all([carregarApoio(), carregarOrdens()])
+    }
+
+    function aplicarBusca() {
+        setBuscaAplicada(busca.trim())
+        setPaginaAtual(1)
+    }
+
+    const ordensPagina = useMemo(
+        () => ordensApi.map(ordem => mapOrdemApiParaTela(ordem, clientes, veiculosApi)),
+        [ordensApi, clientes, veiculosApi]
     )
-    const totalPaginas = Math.ceil(ordensFiltradas.length / ITENS_POR_PAGINA)
-    const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA
-    const ordensPagina = ordensFiltradas.slice(inicio, inicio + ITENS_POR_PAGINA)
 
     const clientesFiltrados = clientes.filter(c =>
         String(c.nome ?? '').toLowerCase().includes(form.buscaCliente.toLowerCase())
@@ -563,10 +622,10 @@ export function OrdemServico() {
                                 style={{ paddingLeft: '36px' }}
                                 value={busca}
                                 onChange={e => setBusca(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && setPaginaAtual(1)}
+                                onKeyDown={e => e.key === 'Enter' && aplicarBusca()}
                             />
                         </div>
-                        <button className="btn-new-client" type="button" onClick={() => setPaginaAtual(1)}>
+                        <button className="btn-new-client" type="button" onClick={aplicarBusca}>
                             Pesquisar
                         </button>
                     </div>

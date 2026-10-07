@@ -16,3 +16,10 @@
     font-weight: 600;
     user-select: none;
 }
+
+.paginacao-indicador {
+    padding: 0 12px;
+    color: #141D24;
+    font-weight: 600;
+    user-select: none;
+}

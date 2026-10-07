@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FaSearch, FaPencilAlt, FaTrash } from 'react-icons/fa'
 import axios from 'axios'
 import {
@@ -8,8 +8,7 @@ import {
     dataMaximaNascimento,
     desativarCliente,
     excluirCliente,
-    formatarTelefone,
-    listarClientesComVeiculos
+    listarClientesPaginado
 } from '../services/clienteService'
 import {
     ANO_MAXIMO_VEICULO,
@@ -213,8 +212,11 @@ export function Cliente() {
     const [modalEditarOpen, setModalEditarOpen] = useState(false)
     const [modalExcluirOpen, setModalExcluirOpen] = useState(false)
     const [busca, setBusca] = useState('')
+    const [buscaAplicada, setBuscaAplicada] = useState('')
     const [paginaAtual, setPaginaAtual] = useState(1)
+    const [totalPaginas, setTotalPaginas] = useState(0)
     const [clientes, setClientes] = useState([])
+    const ultimaRequisicao = useRef(0)
     const [carregandoClientes, setCarregandoClientes] = useState(false)
     const [feedbackGeral, setFeedbackGeral] = useState({ message: '', type: '' })
 
@@ -246,32 +248,61 @@ export function Cliente() {
     const [veiculosBloqueados, setVeiculosBloqueados] = useState([])
     const [desativandoVeiculos, setDesativandoVeiculos] = useState(false)
 
+    // ── Paginação (offset, no backend) ──
+    // A busca digitada só vira filtro do servidor depois de uma pausa (ou Enter/botão).
     useEffect(() => {
-        carregarClientes()
-    }, [])
+        const espera = setTimeout(() => {
+            setBuscaAplicada(busca.trim())
+            setPaginaAtual(1)
+        }, 400)
+
+        return () => clearTimeout(espera)
+    }, [busca])
 
     async function carregarClientes() {
+        const requisicao = ++ultimaRequisicao.current
         setCarregandoClientes(true)
 
         try {
-            const clientesApi = await listarClientesComVeiculos()
-            setClientes(clientesApi)
+            const resposta = await listarClientesPaginado({
+                pagina: paginaAtual,
+                tamanho: ITENS_POR_PAGINA,
+                busca: buscaAplicada
+            })
+
+            // resposta de uma consulta antiga (usuário já mudou de página/busca)
+            if (requisicao !== ultimaRequisicao.current) return
+
+            // a página deixou de existir (ex.: excluiu o último cliente da última página)
+            if (resposta.content.length === 0 && paginaAtual > 1) {
+                setPaginaAtual(Math.max(resposta.totalPages, 1))
+                return
+            }
+
+            setClientes(resposta.content)
+            setTotalPaginas(resposta.totalPages)
             setFeedbackGeral(feedback => feedback.type === 'error' ? { message: '', type: '' } : feedback)
         } catch (error) {
+            if (requisicao !== ultimaRequisicao.current) return
             console.error('Erro ao carregar clientes:', error)
             setFeedbackGeral({ message: error.message, type: 'error' })
         } finally {
-            setCarregandoClientes(false)
+            if (requisicao === ultimaRequisicao.current) {
+                setCarregandoClientes(false)
+            }
         }
     }
 
-    // ── Paginação ──
-    const clientesFiltrados = clientes.filter(c =>
-        String(c.nome ?? '').toLowerCase().includes(busca.toLowerCase())
-    )
-    const totalPaginas = Math.ceil(clientesFiltrados.length / ITENS_POR_PAGINA)
-    const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA
-    const clientesPagina = clientesFiltrados.slice(inicio, inicio + ITENS_POR_PAGINA)
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- busca no servidor ao mudar página/busca
+        carregarClientes()
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- recarrega só quando página ou busca mudam
+    }, [paginaAtual, buscaAplicada])
+
+    function aplicarBusca() {
+        setBuscaAplicada(busca.trim())
+        setPaginaAtual(1)
+    }
 
     // ── Funções cadastro ──
     function abrirModal() {
@@ -644,11 +675,11 @@ export function Cliente() {
                                 style={{ paddingLeft: '36px' }}
                                 value={busca}
                                 onChange={e => setBusca(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && setPaginaAtual(1)}
+                                onKeyDown={e => e.key === 'Enter' && aplicarBusca()}
                             />
                         </div>
                         <button className="btn-new-client" type="button"
-                            onClick={() => setPaginaAtual(1)}
+                            onClick={aplicarBusca}
                             style={{ padding: '12px 16px' }}>
                             Pesquisar
                         </button>
@@ -673,14 +704,14 @@ export function Cliente() {
                         </tr>
                     </thead>
                     <tbody>
-                        {clientesPagina.length === 0 ? (
+                        {clientes.length === 0 ? (
                             <tr>
                                 <td colSpan="5" className="tabela-vazia">
                                     Nenhum cliente encontrado.
                                 </td>
                             </tr>
                         ) : (
-                            clientesPagina.map((cliente) => (
+                            clientes.map((cliente) => (
                                 <tr key={cliente.id}>
                                     <td>{cliente.nome}</td>
                                     <td>{cliente.email}</td>

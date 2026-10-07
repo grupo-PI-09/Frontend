@@ -144,6 +144,13 @@ export function listarOrdensServico() {
     return apiRequest('/ordens')
 }
 
+/** Paginação por offset no backend; a busca é pelo nome do cliente. */
+export function listarOrdensServicoPaginado({ pagina = 1, tamanho = 8, busca = '' } = {}) {
+    return apiRequest('/ordens/paginado', {
+        params: { page: pagina, size: tamanho, busca: texto(busca) || undefined }
+    })
+}
+
 export function buscarOrdemServicoPorId(id) {
     return apiRequest(`/ordens/${id}`)
 }

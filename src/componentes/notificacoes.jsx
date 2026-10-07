@@ -1,92 +1,146 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FaUser, FaRedo, FaCheck, FaCalendarAlt, FaPaperPlane } from 'react-icons/fa'
-import { Paginacao } from './Paginacao'
+import { PaginacaoCursor } from './Paginacao'
+import { STATUS_ORDEM_SERVICO, formatarStatusOrdem } from '../services/ordemServicoService'
+import {
+    TIPOS_NOTIFICACAO,
+    TIPOS_SERVICO,
+    listarNotificacoesPaginado,
+    mapNotificacaoApiParaTela,
+    marcarNotificacaoComoLida,
+    reenviarNotificacao
+} from '../services/notificacaoService'
 import '../style/notificacoes.css'
 
 const ITENS_POR_PAGINA = 8
 
 const TIPOS = {
     todos: 'Todos os tipos',
-    preventiva: 'Preventiva',
-    corretiva: 'Corretiva',
+    ...TIPOS_SERVICO,
 }
 
 const STATUS_OS = {
     todos: 'Todos os status',
-    em_andamento: 'Em andamento',
-    finalizada: 'Finalizada',
-    aberta: 'Aberta',
+    ...Object.fromEntries(STATUS_ORDEM_SERVICO.map(({ value, label }) => [value, label])),
 }
 
-const notificacoesMock = [
-    { id: 1, cliente: 'João da Silva', telefone: '(11) 99999-1234', veiculo: 'Honda Civic (ABC-1234)', enviadaEm: '10/05/2026', proximaRevisao: '10/07/2026', lida: false, tipo: 'preventiva', statusOs: 'finalizada' },
-    { id: 2, cliente: 'Maria Oliveira', telefone: '(11) 98888-5678', veiculo: 'Toyota Corolla (XYZ-5678)', enviadaEm: '09/05/2026', proximaRevisao: '09/05/2026', lida: false, tipo: 'corretiva', statusOs: 'em_andamento' },
-    { id: 3, cliente: 'Carlos Santos', telefone: '(11) 97777-9012', veiculo: 'Fiat Strada (DEF-9012)', enviadaEm: '08/05/2026', proximaRevisao: '08/04/2026', lida: true, tipo: 'corretiva', statusOs: 'aberta' },
-    { id: 4, cliente: 'Ana Paula', telefone: '(11) 96666-3456', veiculo: 'Chevrolet Onix (GHI-3456)', enviadaEm: '07/05/2026', proximaRevisao: '07/08/2026', lida: false, tipo: 'preventiva', statusOs: 'aberta' },
-    { id: 5, cliente: 'Pedro Lima', telefone: '(11) 95555-7890', veiculo: 'Volkswagen Golf (JKL-7890)', enviadaEm: '06/05/2026', proximaRevisao: '06/05/2026', lida: false, tipo: 'corretiva', statusOs: 'em_andamento' },
-    { id: 6, cliente: 'Fernanda Costa', telefone: '(11) 94444-2345', veiculo: 'Hyundai HB20 (MNO-2345)', enviadaEm: '05/05/2026', proximaRevisao: '05/09/2026', lida: true, tipo: 'preventiva', statusOs: 'finalizada' },
-    { id: 7, cliente: 'Ricardo Mendes', telefone: '(11) 93333-6789', veiculo: 'Renault Kwid (PQR-6789)', enviadaEm: '04/05/2026', proximaRevisao: '04/11/2026', lida: false, tipo: 'preventiva', statusOs: 'aberta' },
-    { id: 8, cliente: 'Luciana Ferreira', telefone: '(11) 92222-0123', veiculo: 'Fiat Argo (STU-0123)', enviadaEm: '03/05/2026', proximaRevisao: '03/04/2026', lida: true, tipo: 'corretiva', statusOs: 'finalizada' },
-    { id: 9, cliente: 'Bruno Alves', telefone: '(11) 91111-4567', veiculo: 'Jeep Renegade (VWX-4567)', enviadaEm: '02/05/2026', proximaRevisao: '02/08/2026', lida: false, tipo: 'corretiva', statusOs: 'em_andamento' },
-    { id: 10, cliente: 'Camila Rocha', telefone: '(11) 90000-8901', veiculo: 'Nissan Kicks (YZA-8901)', enviadaEm: '01/05/2026', proximaRevisao: '01/10/2026', lida: true, tipo: 'preventiva', statusOs: 'em_andamento' },
-]
+function statusRevisao(dataIso) {
+    if (!dataIso) return null
 
-function parseData(str) {
-    const [d, m, y] = str.split('/').map(Number)
-    return new Date(y, m - 1, d)
-}
-
-function statusRevisao(dataStr) {
-    const hoje = new Date()
-    const data = parseData(dataStr)
-    const dias = Math.ceil((data - hoje) / (1000 * 60 * 60 * 24))
+    const data = new Date(dataIso)
+    data.setHours(0, 0, 0, 0)
+    const dias = Math.ceil((data - new Date()) / (1000 * 60 * 60 * 24))
     if (dias < 0) return { texto: `Vencida há ${Math.abs(dias)} dias`, tipo: 'vencida' }
     if (dias === 0) return { texto: 'Vence hoje', tipo: 'hoje' }
     if (dias <= 7) return { texto: `Vence em ${dias} dias`, tipo: 'proxima' }
-    return { texto: dataStr, tipo: 'ok' }
+    return { texto: new Intl.DateTimeFormat('pt-BR').format(data), tipo: 'ok' }
+}
+
+function filtroLida(filtroStatus) {
+    if (filtroStatus === 'lida') return true
+    if (filtroStatus === 'nao-lida') return false
+    return undefined
 }
 
 export function Notificacoes() {
-    const [notificacoes, setNotificacoes] = useState(notificacoesMock)
+    const [notificacoes, setNotificacoes] = useState([])
     const [filtroStatus, setFiltroStatus] = useState('todas')
     const [filtroTipo, setFiltroTipo] = useState('todos')
     const [filtroStatusOs, setFiltroStatusOs] = useState('todos')
     const [dataInicio, setDataInicio] = useState('')
     const [dataFim, setDataFim] = useState('')
     const [reenviando, setReenviando] = useState(null)
-    const [paginaAtual, setPaginaAtual] = useState(1)
+    const [carregando, setCarregando] = useState(false)
+    const [erro, setErro] = useState('')
 
-    const filtradas = notificacoes.filter(n => {
-        if (filtroStatus === 'lida' && !n.lida) return false
-        if (filtroStatus === 'nao-lida' && n.lida) return false
-        if (filtroTipo !== 'todos' && n.tipo !== filtroTipo) return false
-        if (filtroStatusOs !== 'todos' && n.statusOs !== filtroStatusOs) return false
-        if (dataInicio && parseData(n.enviadaEm) < parseData(dataInicio.split('-').reverse().join('/'))) return false
-        if (dataFim && parseData(n.enviadaEm) > parseData(dataFim.split('-').reverse().join('/'))) return false
-        return true
-    })
+    // ── Paginação (cursor, no backend) ──
+    // Não há "página N" no servidor: cada resposta traz o cursor da seguinte. Guardamos a
+    // pilha de cursores visitados para o botão "Anterior" (cursores[i] abre a página i + 1).
+    const [cursores, setCursores] = useState([null])
+    const [indicePagina, setIndicePagina] = useState(0)
+    const [proximoCursor, setProximoCursor] = useState(null)
+    const ultimaRequisicao = useRef(0)
 
-    const totalPaginas = Math.ceil(filtradas.length / ITENS_POR_PAGINA)
-    const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA
-    const paginadas = filtradas.slice(inicio, inicio + ITENS_POR_PAGINA)
+    async function carregarNotificacoes() {
+        const requisicao = ++ultimaRequisicao.current
+        setCarregando(true)
 
-    const naoLidas = notificacoes.filter(n => !n.lida).length
+        try {
+            const resposta = await listarNotificacoesPaginado({
+                cursor: cursores[indicePagina],
+                tamanho: ITENS_POR_PAGINA,
+                lida: filtroLida(filtroStatus),
+                tipoServico: filtroTipo,
+                statusOs: filtroStatusOs,
+                dataInicio,
+                dataFim
+            })
 
-    function marcarLida(id) {
-        setNotificacoes(prev => prev.map(n => n.id === id ? { ...n, lida: true } : n))
+            // resposta de uma consulta antiga (usuário já mudou de filtro/página)
+            if (requisicao !== ultimaRequisicao.current) return
+
+            setNotificacoes(resposta.content.map(mapNotificacaoApiParaTela))
+            setProximoCursor(resposta.nextPage)
+            setErro('')
+        } catch (error) {
+            if (requisicao !== ultimaRequisicao.current) return
+            console.error('Erro ao carregar notificações:', error)
+            setNotificacoes([])
+            setProximoCursor(null)
+            setErro(error.message)
+        } finally {
+            if (requisicao === ultimaRequisicao.current) {
+                setCarregando(false)
+            }
+        }
     }
 
-    function reenviar(id) {
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- busca no servidor ao mudar filtros/cursor
+        carregarNotificacoes()
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- recarrega só quando filtros ou cursor mudam
+    }, [filtroStatus, filtroTipo, filtroStatusOs, dataInicio, dataFim, cursores, indicePagina])
+
+    function reiniciarPaginacao() {
+        setCursores([null])
+        setIndicePagina(0)
+    }
+
+    function irParaProxima() {
+        setCursores(atuais => [...atuais.slice(0, indicePagina + 1), proximoCursor])
+        setIndicePagina(indice => indice + 1)
+    }
+
+    function irParaAnterior() {
+        setIndicePagina(indice => Math.max(indice - 1, 0))
+    }
+
+    async function marcarLida(id) {
+        try {
+            await marcarNotificacaoComoLida(id)
+            await carregarNotificacoes()
+        } catch (error) {
+            console.error('Erro ao marcar notificação como lida:', error)
+            setErro(error.message)
+        }
+    }
+
+    async function reenviar(id) {
         setReenviando(id)
-        setTimeout(() => {
-            setNotificacoes(prev => prev.map(n => n.id === id ? { ...n, lida: false } : n))
+        try {
+            await reenviarNotificacao(id)
+            await carregarNotificacoes()
+        } catch (error) {
+            console.error('Erro ao reenviar notificação:', error)
+            setErro(error.message)
+        } finally {
             setReenviando(null)
-        }, 1200)
+        }
     }
 
     function mudarFiltroStatus(novoFiltro) {
         setFiltroStatus(novoFiltro)
-        setPaginaAtual(1)
+        reiniciarPaginacao()
     }
 
     function limparFiltros() {
@@ -95,7 +149,7 @@ export function Notificacoes() {
         setFiltroStatusOs('todos')
         setDataInicio('')
         setDataFim('')
-        setPaginaAtual(1)
+        reiniciarPaginacao()
     }
 
     return (
@@ -111,34 +165,36 @@ export function Notificacoes() {
                     </div>
 
                     <div className="notificacoes-filtros-avancados">
-                        <select className="filtro-select" value={filtroTipo} onChange={e => { setFiltroTipo(e.target.value); setPaginaAtual(1) }}>
+                        <select className="filtro-select" value={filtroTipo} onChange={e => { setFiltroTipo(e.target.value); reiniciarPaginacao() }}>
                             {Object.entries(TIPOS).map(([key, label]) => (
                                 <option key={key} value={key}>{label}</option>
                             ))}
                         </select>
 
-                        <select className="filtro-select" value={filtroStatusOs} onChange={e => { setFiltroStatusOs(e.target.value); setPaginaAtual(1) }}>
+                        <select className="filtro-select" value={filtroStatusOs} onChange={e => { setFiltroStatusOs(e.target.value); reiniciarPaginacao() }}>
                             {Object.entries(STATUS_OS).map(([key, label]) => (
                                 <option key={key} value={key}>{label}</option>
                             ))}
                         </select>
 
                         <div className="filtro-periodo">
-                            <input type="date" className="filtro-data" value={dataInicio} onChange={e => { setDataInicio(e.target.value); setPaginaAtual(1) }} title="Data inicial" />
+                            <input type="date" className="filtro-data" value={dataInicio} onChange={e => { setDataInicio(e.target.value); reiniciarPaginacao() }} title="Data inicial" />
                             <span className="filtro-periodo-separador">até</span>
-                            <input type="date" className="filtro-data" value={dataFim} onChange={e => { setDataFim(e.target.value); setPaginaAtual(1) }} title="Data final" />
+                            <input type="date" className="filtro-data" value={dataFim} onChange={e => { setDataFim(e.target.value); reiniciarPaginacao() }} title="Data final" />
                         </div>
 
                         <button className="btn-limpar-filtros" onClick={limparFiltros}>Limpar filtros</button>
                     </div>
                 </div>
 
-                {paginadas.length === 0 ? (
-                    <div className="notificacoes-vazia">Nenhuma notificação encontrada.</div>
+                {notificacoes.length === 0 ? (
+                    <div className="notificacoes-vazia" aria-live="polite">
+                        {erro || (carregando ? 'Carregando notificações...' : 'Nenhuma notificação encontrada.')}
+                    </div>
                 ) : (
                     <div className="notificacoes-lista">
-                        {paginadas.map(n => {
-                            const status = statusRevisao(n.proximaRevisao)
+                        {notificacoes.map(n => {
+                            const status = statusRevisao(n.dataProximaRevisao)
                             return (
                                 <div key={n.id} className={`notificacao-item ${n.lida ? 'notificacao-item--lida' : ''}`}>
                                     <div className="notificacao-avatar"><FaUser /></div>
@@ -146,15 +202,19 @@ export function Notificacoes() {
                                         <div className="notificacao-header">
                                             <span className="notificacao-cliente">{n.cliente}</span>
                                             {!n.lida && <span className="notificacao-badge-nao-lida"></span>}
-                                            <span className="notificacao-tipo-badge">{TIPOS[n.tipo]}</span>
-                                            <span className={`notificacao-status-badge notificacao-status-badge--${n.statusOs}`}>{STATUS_OS[n.statusOs]}</span>
+                                            <span className="notificacao-tipo-badge">{TIPOS_SERVICO[n.tipoServico] ?? TIPOS_NOTIFICACAO[n.tipo] ?? n.tipo}</span>
+                                            {n.statusOs && (
+                                                <span className={`notificacao-status-badge notificacao-status-badge--${n.statusOs}`}>{formatarStatusOrdem(n.statusOs)}</span>
+                                            )}
                                         </div>
-                                        <p className="notificacao-detalhe">{n.veiculo} · {n.telefone}</p>
+                                        <p className="notificacao-detalhe">{[n.veiculo, n.telefone].filter(Boolean).join(' · ')}</p>
                                         <div className="notificacao-tags">
                                             <span className="notificacao-data"><FaPaperPlane /> {n.enviadaEm}</span>
-                                            <span className={`notificacao-revisao notificacao-revisao--${status.tipo}`}>
-                                                <FaCalendarAlt /> Próxima revisão: {status.texto}
-                                            </span>
+                                            {status && (
+                                                <span className={`notificacao-revisao notificacao-revisao--${status.tipo}`}>
+                                                    <FaCalendarAlt /> Próxima revisão: {status.texto}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="notificacao-acoes">
@@ -175,7 +235,12 @@ export function Notificacoes() {
                     </div>
                 )}
 
-                <Paginacao paginaAtual={paginaAtual} totalPaginas={totalPaginas} onChange={setPaginaAtual} />
+                <PaginacaoCursor
+                    paginaAtual={indicePagina + 1}
+                    temAnterior={indicePagina > 0}
+                    temProxima={Boolean(proximoCursor)}
+                    onAnterior={irParaAnterior}
+                    onProxima={irParaProxima} />
             </div>
         </main>
     )
