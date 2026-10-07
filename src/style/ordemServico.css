@@ -65,6 +65,10 @@
     color: #c53030;
 }
 
+.feedback.warning {
+    color: #a16207;
+}
+
 /* ── TABELA ── */
 
 .client-table {
