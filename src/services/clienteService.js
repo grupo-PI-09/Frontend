@@ -73,6 +73,21 @@ export async function listarClientes() {
     return clientes.map(cliente => mapClienteApiParaTela(cliente))
 }
 
+/**
+ * Paginação por offset no backend. A resposta traz o conteúdo da página já com os
+ * veículos de cada cliente e os totais para os botões numerados.
+ */
+export async function listarClientesPaginado({ pagina = 1, tamanho = 8, busca = '' } = {}) {
+    const resposta = await apiRequest('/clientes/paginado', {
+        params: { page: pagina, size: tamanho, busca: texto(busca) || undefined }
+    })
+
+    return {
+        ...resposta,
+        content: resposta.content.map(cliente => mapClienteApiParaTela(cliente, cliente.veiculos ?? []))
+    }
+}
+
 export async function listarClientesComVeiculos() {
     const [clientes, veiculos] = await Promise.all([
         apiRequest('/clientes'),

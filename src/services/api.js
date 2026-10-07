@@ -70,6 +70,7 @@ export async function apiRequest(path, options = {}, authenticated = true) {
             url: path,
             method: options.method || 'GET',
             data: options.data,
+            params: options.params,
             headers
         })
 
