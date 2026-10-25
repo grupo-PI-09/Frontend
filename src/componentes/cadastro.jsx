@@ -22,8 +22,8 @@ export function Cadastro() {
         }
 
         if (senha !== confirmarSenha) {
-        setFeedback({ message: 'As senhas não coincidem.', type: 'error' });
-        return;
+            setFeedback({ message: 'As senhas não coincidem.', type: 'error' });
+            return;
         }
 
         setLoading(true);
@@ -54,14 +54,14 @@ export function Cadastro() {
             </button>
 
             <section className="auth-wrapper">
-                <header className="brand-block">
-                    <img className="brand-logo" src={Logo} alt="Logo RR Maxx" />
-                </header>
-
                 <article className="auth-card">
+                    <aside className="auth-logo-side">
+                        <img className="auth-logo" src={Logo} alt="Logo RR Maxx" />
+                    </aside>
+
                     <section className="panel is-active">
                         <h1>Cadastro</h1>
-                        <div style={{ display: 'grid', gap: '18px' }}>
+                        <div className="form-grid">
                             <label htmlFor="register-name">Nome:</label>
                             <input
                                 id="register-name"
@@ -109,11 +109,11 @@ export function Cadastro() {
                         <p className="helper-link">
                             Já possui conta? <Link to="/login">Entrar</Link>
                         </p>
-                    </section>
 
-                    <p className={`feedback ${feedback.type}`} aria-live="polite">
-                        {feedback.message}
-                    </p>
+                        <p className={`feedback ${feedback.type}`} aria-live="polite">
+                            {feedback.message}
+                        </p>
+                    </section>
                 </article>
             </section>
         </main>
