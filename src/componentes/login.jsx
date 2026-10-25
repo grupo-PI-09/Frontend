@@ -53,14 +53,14 @@ export function Login() {
             </button>
 
             <section className="auth-wrapper">
-                <header className="brand-block">
-                    <img className="brand-logo" src={Logo} alt="Logo RR Maxx" />
-                </header>
-
                 <article className="auth-card">
+                    <aside className="auth-logo-side">
+                        <img className="auth-logo" src={Logo} alt="Logo RR Maxx" />
+                    </aside>
+
                     <section className="panel is-active">
                         <h1>Login</h1>
-                        <div style={{ display: 'grid', gap: '18px' }}>
+                        <div className="form-grid">
                             <label htmlFor="login-email">E-mail:</label>
                             <input
                                 id="login-email"
@@ -88,11 +88,11 @@ export function Login() {
                         <p className="helper-link">
                             Ainda não tem conta? <Link to="/cadastro">Cadastrar</Link>
                         </p>
-                    </section>
 
-                    <p className={`feedback ${feedback.type}`} aria-live="polite">
-                        {feedback.message}
-                    </p>
+                        <p className={`feedback ${feedback.type}`} aria-live="polite">
+                            {feedback.message}
+                        </p>
+                    </section>
                 </article>
             </section>
         </main>
