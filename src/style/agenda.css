@@ -500,6 +500,100 @@
     background: #ffe0e0;
 }
 
+/* ── DADOS DA API ── */
+.agenda-feedback {
+    min-height: 22px;
+    margin: 0 0 12px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #555;
+}
+
+.agenda-feedback.success {
+    color: #2f855a;
+}
+
+.agenda-feedback.error {
+    color: #c53030;
+}
+
+.agenda-feedback.warning {
+    color: #a16207;
+}
+
+.evento {
+    z-index: 1;
+}
+
+.celula--livre {
+    cursor: pointer;
+}
+
+.celula--livre:hover {
+    background: #f7f7f7;
+}
+
+.agenda-busca-cliente {
+    position: relative;
+}
+
+.agenda-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #fff;
+    z-index: 100;
+    overflow: hidden;
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.agenda-dropdown-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 18px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+}
+
+.agenda-dropdown-item:hover,
+.agenda-dropdown-item:focus {
+    background: #f9f9f9;
+}
+
+.agenda-dropdown-item span {
+    color: #777;
+}
+
+.agenda-dropdown-vazio {
+    padding: 10px 14px;
+    font-size: 16px;
+    color: #777;
+}
+
+.agenda-placa {
+    display: flex;
+    gap: 8px;
+}
+
+.agenda-placa input {
+    flex: 1;
+    min-width: 0;
+}
+
+.btn-salvar:disabled,
+.btn-cancelar-agendamento:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
 /* ── DALTONISMO ── */
 body.daltonico .btn-novo {
     background: #0072B2;
